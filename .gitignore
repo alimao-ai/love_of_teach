@@ -4,6 +4,28 @@
 # Log file
 *.log
 
+# Java build output
+target/
+*.iml
+.idea/
+
+# Node build output
+node_modules/
+dist/
+.vite/
+
+# Runtime data
+data/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# OS files
+.DS_Store
+Thumbs.db
+
 # BlueJ files
 *.ctxt
 
