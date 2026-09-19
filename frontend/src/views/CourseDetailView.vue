@@ -37,13 +37,16 @@ const resourceIcons: Record<ResourceType, typeof FileText> = {
   LINK: Link2,
 }
 
-const offeringId = computed(() => Number(route.params.offeringId))
+const offeringId = computed(() => {
+  const value = Number(route.params.offeringId)
+  return Number.isInteger(value) && value > 0 ? value : undefined
+})
 
-async function loadDetail() {
+async function loadDetail(id: number) {
   loading.value = true
   error.value = ''
   try {
-    course.value = await api.getCourseDetail(offeringId.value)
+    course.value = await api.getCourseDetail(id)
   } catch (requestError) {
     error.value = errorMessage(requestError)
   } finally {
@@ -51,7 +54,19 @@ async function loadDetail() {
   }
 }
 
-watch(offeringId, loadDetail, { immediate: true })
+watch(
+  offeringId,
+  (id) => {
+    if (id === undefined) {
+      course.value = undefined
+      loading.value = false
+      error.value = '课程编号格式不正确'
+      return
+    }
+    void loadDetail(id)
+  },
+  { immediate: true },
+)
 </script>
 
 <template>

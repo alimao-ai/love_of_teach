@@ -19,6 +19,7 @@ import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -62,6 +63,7 @@ public class CourseImportService {
     private final TeacherRepository teacherRepository;
     private final CourseRepository courseRepository;
     private final CourseOfferingRepository offeringRepository;
+    private final TransactionTemplate transactionTemplate;
 
     public byte[] buildTemplate() {
         String csv = String.join(",", TEMPLATE_HEADERS) + System.lineSeparator()
@@ -87,7 +89,8 @@ public class CourseImportService {
                 long rowNumber = record.getRecordNumber() + 1;
                 Map<String, String> row = normalize(record.toMap());
                 try {
-                    importRow(row);
+                    // A failed row must not leave partially written teachers, courses, or offerings.
+                    transactionTemplate.executeWithoutResult(status -> importRow(row));
                     successCount++;
                 } catch (BusinessException ex) {
                     failures.add(new ImportFailureResponse(rowNumber, row.get("courseCode"), ex.getMessage()));
@@ -129,6 +132,9 @@ public class CourseImportService {
         }
         Semester semester = semesterRepository.findByCodeIgnoreCase(semesterCode)
                 .orElseThrow(() -> new BusinessException("学期编码不存在：" + semesterCode));
+        if (!semester.isActive()) {
+            throw new BusinessException("学期已停用：" + semesterCode);
+        }
 
         Teacher teacher = teacherRepository.findByEmployeeNoIgnoreCase(teacherNo)
                 .map(existing -> updateTeacher(existing, teacherName, department))
@@ -211,7 +217,7 @@ public class CourseImportService {
         try {
             int parsed = Integer.parseInt(value);
             if (parsed < 0) {
-                throw new NumberFormatException();
+                throw new BusinessException(label + "必须是非负整数");
             }
             return parsed;
         } catch (NumberFormatException ex) {
@@ -226,7 +232,7 @@ public class CourseImportService {
         try {
             BigDecimal credits = new BigDecimal(value.trim());
             if (credits.signum() < 0) {
-                throw new NumberFormatException();
+                throw new BusinessException("学分必须是非负数字");
             }
             return credits.setScale(1, java.math.RoundingMode.HALF_UP);
         } catch (NumberFormatException ex) {

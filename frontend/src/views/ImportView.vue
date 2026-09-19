@@ -71,8 +71,10 @@ function downloadFailures() {
   const anchor = document.createElement('a')
   anchor.href = url
   anchor.download = 'course-import-failures.csv'
+  document.body.appendChild(anchor)
   anchor.click()
-  URL.revokeObjectURL(url)
+  anchor.remove()
+  window.setTimeout(() => URL.revokeObjectURL(url), 1_000)
 }
 </script>
 

@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { OfferingStatus } from '@/types/api'
 import { statusClass } from '@/utils/format'
 
 const props = defineProps<{
-  status: OfferingStatus
+  status: string
   label: string
 }>()
 

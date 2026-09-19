@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   AlertCircle,
@@ -39,6 +39,9 @@ const semesterId = ref<number>()
 const departmentId = ref<number>()
 const teacherId = ref<number>()
 const keyword = ref('')
+let initialized = false
+let loadTimer: number | undefined
+let requestSequence = 0
 
 const metrics = computed(() => ({
   courseCount: courses.value.length,
@@ -69,6 +72,7 @@ async function loadTeachers() {
 }
 
 async function loadData() {
+  const sequence = ++requestSequence
   loading.value = true
   error.value = ''
   try {
@@ -82,13 +86,27 @@ async function loadData() {
       api.listCourses(filters),
       api.teacherOverview(filters),
     ])
+    if (sequence !== requestSequence) return
     courses.value = courseData
     overview.value = overviewData
   } catch (requestError) {
-    error.value = errorMessage(requestError)
+    if (sequence === requestSequence) {
+      error.value = errorMessage(requestError)
+    }
   } finally {
-    loading.value = false
+    if (sequence === requestSequence) {
+      loading.value = false
+    }
   }
+}
+
+function scheduleLoadData() {
+  if (!initialized) return
+  if (loadTimer) window.clearTimeout(loadTimer)
+  loadTimer = window.setTimeout(() => {
+    loadTimer = undefined
+    void loadData()
+  }, 0)
 }
 
 function resetFilters() {
@@ -97,7 +115,7 @@ function resetFilters() {
   teacherId.value = undefined
   keyword.value = ''
   teachers.value = []
-  void loadData()
+  scheduleLoadData()
 }
 
 function openCourse(item: CourseListItem) {
@@ -105,21 +123,27 @@ function openCourse(item: CourseListItem) {
 }
 
 watch(departmentId, async () => {
+  if (!initialized) return
   await loadTeachers()
-  await loadData()
+  scheduleLoadData()
 })
 
 watch([semesterId, teacherId], () => {
-  void loadData()
+  scheduleLoadData()
 })
 
 onMounted(async () => {
   try {
     await loadCatalogs()
+    initialized = true
     await loadData()
   } catch (requestError) {
     error.value = errorMessage(requestError)
   }
+})
+
+onBeforeUnmount(() => {
+  if (loadTimer) window.clearTimeout(loadTimer)
 })
 </script>
 

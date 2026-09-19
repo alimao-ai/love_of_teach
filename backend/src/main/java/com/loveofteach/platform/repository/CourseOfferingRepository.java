@@ -42,8 +42,4 @@ public interface CourseOfferingRepository extends JpaRepository<CourseOffering, 
 
     Optional<CourseOffering> findByCourseIdAndTeacherIdAndSemesterIdAndClassName(
             Long courseId, Long teacherId, Long semesterId, String className);
-
-    boolean existsBySemesterId(Long semesterId);
-
-    boolean existsByCourseDepartmentId(Long departmentId);
 }

@@ -16,5 +16,6 @@ describe('format utilities', () => {
     expect(statusClass('OPEN')).toBe('status-open')
     expect(statusClass('PLANNED')).toBe('status-planned')
     expect(statusClass('CLOSED')).toBe('status-closed')
+    expect(statusClass('ARCHIVED')).toBe('status-unknown')
   })
 })

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   AlertCircle,
@@ -27,6 +27,8 @@ const semesterId = ref<number>()
 const departmentId = ref<number>()
 const loading = ref(false)
 const error = ref('')
+let initialized = false
+let loadTimer: number | undefined
 
 const summary = computed(
   () =>
@@ -65,7 +67,12 @@ function openCourse(item: CourseListItem) {
 }
 
 watch([semesterId, departmentId], () => {
-  void loadData()
+  if (!initialized) return
+  if (loadTimer) window.clearTimeout(loadTimer)
+  loadTimer = window.setTimeout(() => {
+    loadTimer = undefined
+    void loadData()
+  }, 0)
 })
 
 onMounted(async () => {
@@ -80,10 +87,15 @@ onMounted(async () => {
       semesterData.find((semester) => semester.code === '2025-2026-2')?.id ?? semesterData[0]?.id
     departmentId.value =
       departmentData.find((department) => department.code === 'SOFTWARE')?.id
+    initialized = true
     await loadData()
   } catch (requestError) {
     error.value = errorMessage(requestError)
   }
+})
+
+onBeforeUnmount(() => {
+  if (loadTimer) window.clearTimeout(loadTimer)
 })
 </script>
 

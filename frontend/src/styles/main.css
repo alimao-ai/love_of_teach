@@ -632,6 +632,11 @@ a {
   background: #e9eef2;
 }
 
+.status-unknown {
+  color: #5a6270;
+  background: #eceff3;
+}
+
 .coverage-mark {
   display: inline-flex;
   align-items: center;

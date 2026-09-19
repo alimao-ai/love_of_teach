@@ -24,13 +24,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -183,9 +181,13 @@ public class CourseQueryService {
             List<CourseOffering> offerings,
             Set<Long> supervisedIds
     ) {
-        Map<Long, Long> resourceCounts = offerings.stream()
-                .map(CourseOffering::getId)
-                .collect(Collectors.toMap(Function.identity(), resourceRepository::countByOfferingId));
+        List<Long> offeringIds = offerings.stream().map(CourseOffering::getId).toList();
+        Map<Long, Long> resourceCounts = offeringIds.isEmpty()
+                ? Map.of()
+                : resourceRepository.countByOfferingIds(offeringIds).stream()
+                .collect(Collectors.toMap(
+                        TeachingResourceRepository.OfferingResourceCount::getOfferingId,
+                        TeachingResourceRepository.OfferingResourceCount::getResourceCount));
 
         return offerings.stream()
                 .map(offering -> new CourseListItemResponse(

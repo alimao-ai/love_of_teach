@@ -1,5 +1,3 @@
-import type { OfferingStatus } from '@/types/api'
-
 export function formatNumber(value: number | undefined | null) {
   return new Intl.NumberFormat('zh-CN').format(value ?? 0)
 }
@@ -29,10 +27,15 @@ export function formatDate(value: string | undefined | null) {
   }).format(new Date(`${value}T00:00:00`))
 }
 
-export function statusClass(status: OfferingStatus) {
-  return {
-    PLANNED: 'status-planned',
-    OPEN: 'status-open',
-    CLOSED: 'status-closed',
-  }[status]
+export function statusClass(status: string) {
+  switch (status) {
+    case 'PLANNED':
+      return 'status-planned'
+    case 'OPEN':
+      return 'status-open'
+    case 'CLOSED':
+      return 'status-closed'
+    default:
+      return 'status-unknown'
+  }
 }

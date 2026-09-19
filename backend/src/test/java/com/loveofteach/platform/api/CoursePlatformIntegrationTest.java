@@ -187,7 +187,8 @@ class CoursePlatformIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(6))
                 .andExpect(jsonPath("$[0].semesterId").value(spring.getId()))
-                .andExpect(jsonPath("$[0].courseCode").isNotEmpty());
+                .andExpect(jsonPath("$[0].courseCode").isNotEmpty())
+                .andExpect(jsonPath("$[0].resourceCount").value(2));
 
         mockMvc.perform(get("/api/courses")
                         .param("semesterId", autumn.getId().toString())
@@ -263,6 +264,64 @@ class CoursePlatformIntegrationTest {
         assertThat(courseRepository.findByCodeIgnoreCase("CS500")).isPresent();
         assertThat(courseRepository.findByCodeIgnoreCase("CS501")).isEmpty();
         assertThat(teacherRepository.findByEmployeeNoIgnoreCase("T008")).isPresent();
+    }
+
+    @Test
+    void importRollsBackAllWritesForFailedRow() throws Exception {
+        String csv = """
+                courseCode,courseName,departmentCode,credits,description,teacherNo,teacherName,semesterCode,className,studentCount,status
+                DS101,错误归属课程,SOFTWARE,3.0,课程已属于其他院系,T099,新教师,2025-2026-2,软件2409,36,OPEN
+                """;
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "rollback.csv",
+                "text/csv",
+                csv.getBytes(StandardCharsets.UTF_8));
+
+        mockMvc.perform(multipart("/api/import/courses").file(file))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.successCount").value(0))
+                .andExpect(jsonPath("$.failureCount").value(1))
+                .andExpect(jsonPath("$.failures[0].reason")
+                        .value(org.hamcrest.Matchers.containsString("已归属于其他院系")));
+
+        assertThat(teacherRepository.findByEmployeeNoIgnoreCase("T099")).isEmpty();
+        assertThat(offeringRepository.findByCourseIdAndTeacherIdAndSemesterIdAndClassName(
+                courseRepository.findByCodeIgnoreCase("DS101").orElseThrow().getId(),
+                softwareTeachers.get(0).getId(),
+                spring.getId(),
+                "软件2409")).isEmpty();
+    }
+
+    @Test
+    void importRejectsInactiveSemester() throws Exception {
+        spring.setActive(false);
+        semesterRepository.save(spring);
+        String csv = """
+                courseCode,courseName,departmentCode,credits,description,teacherNo,teacherName,semesterCode,className,studentCount,status
+                CS600,停用学期课程,SOFTWARE,3.0,测试课程,T001,教师1,2025-2026-2,软件2408,40,OPEN
+                """;
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "inactive-semester.csv",
+                "text/csv",
+                csv.getBytes(StandardCharsets.UTF_8));
+
+        mockMvc.perform(multipart("/api/import/courses").file(file))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.successCount").value(0))
+                .andExpect(jsonPath("$.failureCount").value(1))
+                .andExpect(jsonPath("$.failures[0].reason").value("学期已停用：2025-2026-2"));
+
+        assertThat(courseRepository.findByCodeIgnoreCase("CS600")).isEmpty();
+    }
+
+    @Test
+    void invalidPathParameterReturnsBadRequest() throws Exception {
+        mockMvc.perform(get("/api/courses/not-a-number"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("格式不正确")));
     }
 
     @Test

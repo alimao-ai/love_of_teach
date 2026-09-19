@@ -69,6 +69,14 @@ courseCode,courseName,departmentCode,credits,description,teacherNo,teacherName,s
 
 `status` 支持 `PLANNED`、`OPEN`、`CLOSED`，也兼容 `待开课`、`开课`、`停课`。
 
+导入时每一行使用独立事务。某一行校验或保存失败时，该行已执行的教师、课程和开课写入会一起回滚，不影响其他成功行。
+
+## 数据一致性说明
+
+- 院系和学期采用停用而不是删除。停用后保留已有课程引用，但不再作为新增业务数据的可用选项。
+- CSV 导入会拒绝停用院系和停用学期，避免继续产生新的业务引用。
+- 开发环境使用 H2 与 `ddl-auto: update` 便于快速启动。正式部署建议改用 MySQL/PostgreSQL，并将 JPA 配置调整为 `validate`，由 Flyway 管理数据库迁移。
+
 ## 初始账号与角色
 
 Sprint 1 聚焦数据底座与查询验收，不包含登录鉴权。首页中的角色导航用于体现教研室主任、教学督导、教师和管理员的目标工作区，后续迭代可接入统一身份认证与权限控制。
