@@ -17,6 +17,10 @@ import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+/**
+ * 将业务异常、参数校验异常和未知异常转换为统一 JSON 响应。
+ * 参数格式错误返回 400，避免落入 500 兜底分支。
+ */
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {

@@ -28,6 +28,10 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * 在空数据库中写入 Sprint 1 演示数据，便于首次启动直接验证查询和统计功能。
+ * 已存在院系数据时跳过初始化，避免覆盖实际数据。
+ */
 @Component
 @RequiredArgsConstructor
 @ConditionalOnProperty(name = "app.seed.enabled", havingValue = "true", matchIfMissing = true)

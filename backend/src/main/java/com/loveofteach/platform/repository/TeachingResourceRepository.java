@@ -14,6 +14,9 @@ public interface TeachingResourceRepository extends JpaRepository<TeachingResour
 
     long countByOfferingId(Long offeringId);
 
+    /**
+     * 按开课记录批量统计资源数量，避免课程列表逐条查询造成 N+1 问题。
+     */
     @Query("""
             select resource.offering.id as offeringId, count(resource) as resourceCount
             from TeachingResource resource

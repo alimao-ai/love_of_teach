@@ -102,6 +102,7 @@ async function loadData() {
 
 function scheduleLoadData() {
   if (!initialized) return
+  // 合并同一轮筛选产生的多次 watch 回调，只发起一次查询。
   if (loadTimer) window.clearTimeout(loadTimer)
   loadTimer = window.setTimeout(() => {
     loadTimer = undefined

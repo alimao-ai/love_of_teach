@@ -34,6 +34,10 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+/**
+ * 解析课程与教师 CSV，并逐行校验、写入基础数据。
+ * 每一行使用独立事务，失败行回滚，成功行继续保留。
+ */
 @Service
 @RequiredArgsConstructor
 public class CourseImportService {

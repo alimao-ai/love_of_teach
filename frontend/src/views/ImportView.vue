@@ -74,6 +74,7 @@ function downloadFailures() {
   document.body.appendChild(anchor)
   anchor.click()
   anchor.remove()
+  // 浏览器开始下载后再释放对象 URL，避免部分环境取消下载。
   window.setTimeout(() => URL.revokeObjectURL(url), 1_000)
 }
 </script>

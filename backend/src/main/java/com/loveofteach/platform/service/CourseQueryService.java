@@ -31,6 +31,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * 提供课程列表、教师总览、课程详情和督导覆盖率查询。
+ * 查询结果统一组合课程、教师、资源数量和督导状态。
+ */
 @Service
 @RequiredArgsConstructor
 public class CourseQueryService {

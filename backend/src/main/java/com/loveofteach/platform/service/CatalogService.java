@@ -19,6 +19,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+/**
+ * 维护课程查询依赖的院系、学期和教师基础数据。
+ * 停用操作只改变业务可用状态，不删除已有课程引用。
+ */
 @Service
 @RequiredArgsConstructor
 public class CatalogService {

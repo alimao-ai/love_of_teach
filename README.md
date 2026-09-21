@@ -24,6 +24,22 @@ code/
 └── README.md
 ```
 
+## 分支与提交策略
+
+- `main` 保持可演示、可交付的稳定版本，不直接开发业务功能。
+- 每个迭代从 `main` 创建独立功能分支，例如当前分支 `feature/sprint1-course-platform`。
+- 提交信息使用 `feat`、`fix`、`docs`、`test` 等前缀，按后端、前端、文档等职责拆分提交，便于审查和回溯。
+- 功能完成后通过 Pull Request 合并到 `main`，合并前必须通过后端测试、前端测试、类型检查和生产构建。
+
+当前 Sprint 1 提交记录：
+
+```text
+e6ed4a3 feat(backend): add sprint1 course data platform api
+e7f8093 feat(frontend): add course management workspace
+57b8949 docs: add sprint1 setup guide
+4f3cfb6 fix: address sprint1 code review findings
+```
+
 ## 启动后端
 
 ```powershell
