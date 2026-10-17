@@ -24,6 +24,7 @@ public record CourseOfferingDetailResponse(
         boolean supervised,
         int supervisionCount,
         List<CourseResourceResponse> resources,
+        List<ResourceChapterResponse> chapters,
         String resourceEmptyMessage
 ) {
 }

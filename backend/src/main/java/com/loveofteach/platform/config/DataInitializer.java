@@ -2,24 +2,32 @@ package com.loveofteach.platform.config;
 
 import com.loveofteach.platform.common.OfferingStatus;
 import com.loveofteach.platform.common.ResourceType;
+import com.loveofteach.platform.common.UserRole;
 import com.loveofteach.platform.domain.Course;
+import com.loveofteach.platform.domain.CourseEvaluation;
 import com.loveofteach.platform.domain.CourseOffering;
 import com.loveofteach.platform.domain.Department;
+import com.loveofteach.platform.domain.ResourceChapter;
 import com.loveofteach.platform.domain.Semester;
 import com.loveofteach.platform.domain.SupervisionRecord;
 import com.loveofteach.platform.domain.Teacher;
 import com.loveofteach.platform.domain.TeachingResource;
+import com.loveofteach.platform.domain.UserAccount;
 import com.loveofteach.platform.repository.CourseOfferingRepository;
+import com.loveofteach.platform.repository.CourseEvaluationRepository;
 import com.loveofteach.platform.repository.CourseRepository;
 import com.loveofteach.platform.repository.DepartmentRepository;
+import com.loveofteach.platform.repository.ResourceChapterRepository;
 import com.loveofteach.platform.repository.SemesterRepository;
 import com.loveofteach.platform.repository.SupervisionRecordRepository;
 import com.loveofteach.platform.repository.TeacherRepository;
 import com.loveofteach.platform.repository.TeachingResourceRepository;
+import com.loveofteach.platform.repository.UserAccountRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -44,11 +52,17 @@ public class DataInitializer implements ApplicationRunner {
     private final CourseOfferingRepository offeringRepository;
     private final TeachingResourceRepository resourceRepository;
     private final SupervisionRecordRepository supervisionRepository;
+    private final ResourceChapterRepository chapterRepository;
+    private final CourseEvaluationRepository evaluationRepository;
+    private final UserAccountRepository userAccountRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     @Transactional
     public void run(ApplicationArguments args) {
         if (departmentRepository.count() > 0) {
+            ensureAccounts();
+            seedSprint2Samples();
             return;
         }
 
@@ -150,6 +164,118 @@ public class DataInitializer implements ApplicationRunner {
         supervise(db1, "院级督导 胡老师", LocalDate.of(2026, 4, 16));
         supervise(t1, "院级督导 胡老师", LocalDate.of(2026, 5, 8));
         supervise(n1, "校级督导 周老师", LocalDate.of(2026, 5, 20));
+
+        ensureAccounts();
+        seedSprint2Samples();
+    }
+
+    private void ensureAccounts() {
+        if (userAccountRepository.count() > 0) {
+            return;
+        }
+        Teacher zhang = teacherRepository.findByEmployeeNoIgnoreCase("T001").orElse(null);
+        Teacher li = teacherRepository.findByEmployeeNoIgnoreCase("T002").orElse(null);
+        account("director", "孟主任", "director123", UserRole.DIRECTOR, null);
+        account("supervisor", "周督导", "supervisor123", UserRole.SUPERVISOR, null);
+        account("teacher", "张明", "teacher123", UserRole.TEACHER, zhang);
+        account("teacher2", "李华", "teacher123", UserRole.TEACHER, li);
+        account("admin", "系统管理员", "admin123", UserRole.ADMIN, null);
+    }
+
+    private void seedSprint2Samples() {
+        List<CourseOffering> offerings = offeringRepository.search(null, null, null, null);
+        if (offerings.isEmpty()) {
+            return;
+        }
+        CourseOffering first = findOffering(offerings, "CS101", "2025-2026-2").orElse(offerings.get(0));
+        CourseOffering second = findOffering(offerings, "CS201", "2025-2026-2")
+                .orElse(offerings.get(Math.min(1, offerings.size() - 1)));
+        if (chapterRepository.count() == 0) {
+            ResourceChapter chapterOne = chapterRepository.save(ResourceChapter.builder()
+                    .offering(first)
+                    .title("第 1 章 课程导论")
+                    .displayOrder(1)
+                    .description("课程目标、开发环境与学习要求")
+                    .build());
+            ResourceChapter chapterTwo = chapterRepository.save(ResourceChapter.builder()
+                    .offering(first)
+                    .title("第 2 章 函数与模块")
+                    .displayOrder(2)
+                    .description("函数抽象、模块化与复用")
+                    .build());
+            List<TeachingResource> firstResources =
+                    resourceRepository.findByOfferingIdOrderByUploadedAtDesc(first.getId());
+            for (int index = 0; index < firstResources.size(); index++) {
+                TeachingResource resource = firstResources.get(index);
+                resource.setChapter(index % 2 == 0 ? chapterOne : chapterTwo);
+                resourceRepository.save(resource);
+            }
+            ResourceChapter secondChapter = chapterRepository.save(ResourceChapter.builder()
+                    .offering(second)
+                    .title("第 1 章 线性表")
+                    .displayOrder(1)
+                    .description("顺序表与链表")
+                    .build());
+            resourceRepository.findByOfferingIdOrderByUploadedAtDesc(second.getId()).stream()
+                    .findFirst()
+                    .ifPresent(resource -> {
+                        resource.setChapter(secondChapter);
+                        resourceRepository.save(resource);
+                    });
+        }
+        if (evaluationRepository.count() == 0) {
+            UserAccount supervisor = userAccountRepository.findByUsernameIgnoreCase("supervisor").orElse(null);
+            UserAccount director = userAccountRepository.findByUsernameIgnoreCase("director").orElse(null);
+            if (supervisor != null) {
+                evaluation(first, supervisor, 86, "课堂组织清晰，案例与课程目标匹配。");
+            }
+            if (director != null) {
+                evaluation(second, director, 68, "课堂互动偏少，建议增加分层练习与随堂反馈。");
+            }
+        }
+    }
+
+    private java.util.Optional<CourseOffering> findOffering(
+            List<CourseOffering> offerings,
+            String courseCode,
+            String semesterCode
+    ) {
+        return offerings.stream()
+                .filter(offering -> offering.getCourse().getCode().equals(courseCode))
+                .filter(offering -> offering.getSemester().getCode().equals(semesterCode))
+                .findFirst();
+    }
+
+    private void account(
+            String username,
+            String displayName,
+            String password,
+            UserRole role,
+            Teacher teacher
+    ) {
+        userAccountRepository.save(UserAccount.builder()
+                .username(username)
+                .displayName(displayName)
+                .passwordHash(passwordEncoder.encode(password))
+                .role(role)
+                .teacher(teacher)
+                .active(true)
+                .build());
+    }
+
+    private void evaluation(
+            CourseOffering offering,
+            UserAccount reviewer,
+            int score,
+            String comment
+    ) {
+        evaluationRepository.save(CourseEvaluation.builder()
+                .offering(offering)
+                .reviewer(reviewer)
+                .score(score)
+                .comment(comment)
+                .evaluatedAt(LocalDateTime.now().minusDays(3))
+                .build());
     }
 
     private Teacher teacher(Department department, String no, String name, String title) {

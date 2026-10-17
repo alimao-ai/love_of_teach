@@ -25,6 +25,33 @@ public interface TeachingResourceRepository extends JpaRepository<TeachingResour
             """)
     List<OfferingResourceCount> countByOfferingIds(@Param("offeringIds") Collection<Long> offeringIds);
 
+    @Query("""
+            select resource from TeachingResource resource
+            join fetch resource.offering offering
+            join fetch offering.course course
+            join fetch offering.teacher teacher
+            join fetch offering.semester semester
+            left join fetch resource.chapter chapter
+            where (:semesterId is null or semester.id = :semesterId)
+              and (:departmentId is null or course.department.id = :departmentId)
+              and (:offeringId is null or offering.id = :offeringId)
+              and (:chapterId is null or chapter.id = :chapterId)
+              and (:resourceType is null or resource.resourceType = :resourceType)
+              and (:keyword is null or lower(resource.name) like lower(concat('%', :keyword, '%'))
+                   or lower(coalesce(resource.description, '')) like lower(concat('%', :keyword, '%'))
+                   or lower(course.name) like lower(concat('%', :keyword, '%')))
+            order by resource.uploadedAt desc
+            """)
+    List<TeachingResource> search(
+            @Param("semesterId") Long semesterId,
+            @Param("departmentId") Long departmentId,
+            @Param("offeringId") Long offeringId,
+            @Param("chapterId") Long chapterId,
+            @Param("resourceType") com.loveofteach.platform.common.ResourceType resourceType,
+            @Param("keyword") String keyword);
+
+    long countByChapterId(Long chapterId);
+
     interface OfferingResourceCount {
 
         Long getOfferingId();

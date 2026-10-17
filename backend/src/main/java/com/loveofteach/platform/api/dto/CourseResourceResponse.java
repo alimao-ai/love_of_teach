@@ -10,6 +10,12 @@ public record CourseResourceResponse(
         ResourceType resourceType,
         String resourceTypeLabel,
         String url,
-        LocalDateTime uploadedAt
+        LocalDateTime uploadedAt,
+        Long chapterId,
+        String chapterTitle,
+        String description,
+        String originalFilename,
+        Long fileSize,
+        String downloadUrl
 ) {
 }

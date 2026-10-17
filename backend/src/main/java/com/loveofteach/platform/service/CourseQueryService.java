@@ -5,16 +5,17 @@ import com.loveofteach.platform.api.dto.CourseOfferingDetailResponse;
 import com.loveofteach.platform.api.dto.CourseResourceResponse;
 import com.loveofteach.platform.api.dto.CoverageSummaryResponse;
 import com.loveofteach.platform.api.dto.DepartmentCoverageResponse;
+import com.loveofteach.platform.api.dto.ResourceChapterResponse;
 import com.loveofteach.platform.api.dto.SupervisionCoverageResponse;
 import com.loveofteach.platform.api.dto.TeacherCourseGroupResponse;
 import com.loveofteach.platform.api.dto.TeacherOverviewResponse;
 import com.loveofteach.platform.common.BusinessException;
-import com.loveofteach.platform.common.ResourceType;
 import com.loveofteach.platform.domain.CourseOffering;
 import com.loveofteach.platform.domain.Department;
 import com.loveofteach.platform.domain.SupervisionRecord;
 import com.loveofteach.platform.domain.Teacher;
 import com.loveofteach.platform.repository.CourseOfferingRepository;
+import com.loveofteach.platform.repository.ResourceChapterRepository;
 import com.loveofteach.platform.repository.SupervisionRecordRepository;
 import com.loveofteach.platform.repository.TeacherRepository;
 import com.loveofteach.platform.repository.TeachingResourceRepository;
@@ -43,6 +44,8 @@ public class CourseQueryService {
     private final TeachingResourceRepository resourceRepository;
     private final SupervisionRecordRepository supervisionRepository;
     private final TeacherRepository teacherRepository;
+    private final ResourceChapterRepository chapterRepository;
+    private final CourseResourceService courseResourceService;
 
     @Transactional(readOnly = true)
     public List<CourseListItemResponse> searchCourses(
@@ -100,13 +103,17 @@ public class CourseQueryService {
         List<CourseResourceResponse> resources = resourceRepository
                 .findByOfferingIdOrderByUploadedAtDesc(offeringId)
                 .stream()
-                .map(resource -> new CourseResourceResponse(
-                        resource.getId(),
-                        resource.getName(),
-                        resource.getResourceType(),
-                        resourceTypeLabel(resource.getResourceType()),
-                        resource.getUrl(),
-                        resource.getUploadedAt()))
+                .map(courseResourceService::toResourceResponse)
+                .toList();
+        List<ResourceChapterResponse> chapters = chapterRepository
+                .findByOfferingIdOrderByDisplayOrderAsc(offeringId)
+                .stream()
+                .map(chapter -> new ResourceChapterResponse(
+                        chapter.getId(),
+                        chapter.getTitle(),
+                        chapter.getDisplayOrder(),
+                        chapter.getDescription(),
+                        resourceRepository.countByChapterId(chapter.getId())))
                 .toList();
 
         return new CourseOfferingDetailResponse(
@@ -128,6 +135,7 @@ public class CourseQueryService {
                 supervisionCount > 0,
                 Math.toIntExact(supervisionCount),
                 resources,
+                chapters,
                 resources.isEmpty() ? "该课程暂未上传教学资源" : null);
     }
 
@@ -231,12 +239,4 @@ public class CourseQueryService {
         return Math.round(supervised * 1000.0 / total) / 10.0;
     }
 
-    private String resourceTypeLabel(ResourceType type) {
-        return switch (type) {
-            case DOCUMENT -> "文档";
-            case SLIDES -> "课件";
-            case VIDEO -> "视频";
-            case LINK -> "链接";
-        };
-    }
 }

@@ -41,6 +41,24 @@ public class TeachingResource extends BaseEntity {
     @Column(nullable = false, length = 512)
     private String url;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "chapter_id")
+    private ResourceChapter chapter;
+
+    @Column(length = 512)
+    private String description;
+
+    @Column(length = 128)
+    private String originalFilename;
+
+    @Column(length = 128)
+    private String contentType;
+
+    private Long fileSize;
+
+    @Column(length = 256)
+    private String storageKey;
+
     @Column(nullable = false)
     private LocalDateTime uploadedAt;
 }

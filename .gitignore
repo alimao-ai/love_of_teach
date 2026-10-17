@@ -16,6 +16,8 @@ dist/
 
 # Runtime data
 data/
+uploads/
+backend/uploads/
 
 # Environment files
 .env

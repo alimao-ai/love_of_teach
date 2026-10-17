@@ -67,7 +67,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     public ResponseEntity<ApiErrorResponse> handleMaxUploadSize() {
-        return error("上传文件不能超过 5MB", HttpStatus.PAYLOAD_TOO_LARGE, null);
+        return error("上传文件不能超过 10MB", HttpStatus.PAYLOAD_TOO_LARGE, null);
     }
 
     @ExceptionHandler(Exception.class)
