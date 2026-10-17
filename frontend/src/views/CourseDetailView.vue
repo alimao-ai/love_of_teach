@@ -1,18 +1,19 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   AlertCircle,
   ArrowLeft,
   BookOpen,
   CalendarDays,
-  ExternalLink,
+  Download,
   FileText,
   FolderOpen,
   GraduationCap,
   Link2,
   Presentation,
   ShieldCheck,
+  UploadCloud,
   Users,
   Video,
 } from 'lucide-vue-next'
@@ -21,6 +22,7 @@ import LoadingBlock from '@/components/LoadingBlock.vue'
 import MetricTile from '@/components/MetricTile.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
 import { api, errorMessage } from '@/services/api'
+import { authState } from '@/stores/auth'
 import type { CourseDetail, ResourceType } from '@/types/api'
 import { formatDateTime, formatNumber } from '@/utils/format'
 
@@ -29,6 +31,28 @@ const router = useRouter()
 const course = ref<CourseDetail>()
 const loading = ref(true)
 const error = ref('')
+const success = ref('')
+const savingChapter = ref(false)
+const uploading = ref(false)
+const selectedFile = ref<File>()
+
+const chapterForm = reactive({
+  title: '',
+  displayOrder: 1,
+  description: '',
+})
+
+const resourceForm = reactive<{
+  name: string
+  resourceType: ResourceType
+  chapterId?: number
+  description: string
+}>({
+  name: '',
+  resourceType: 'DOCUMENT',
+  chapterId: undefined,
+  description: '',
+})
 
 const resourceIcons: Record<ResourceType, typeof FileText> = {
   DOCUMENT: FileText,
@@ -41,6 +65,11 @@ const offeringId = computed(() => {
   const value = Number(route.params.offeringId)
   return Number.isInteger(value) && value > 0 ? value : undefined
 })
+const canManage = computed(
+  () =>
+    authState.user?.role === 'TEACHER' &&
+    authState.user.teacherId === course.value?.teacherId,
+)
 
 async function loadDetail(id: number) {
   loading.value = true
@@ -54,9 +83,78 @@ async function loadDetail(id: number) {
   }
 }
 
+async function createChapter() {
+  if (!offeringId.value) return
+  savingChapter.value = true
+  error.value = ''
+  success.value = ''
+  try {
+    await api.createChapter(offeringId.value, {
+      title: chapterForm.title,
+      displayOrder: chapterForm.displayOrder,
+      description: chapterForm.description,
+    })
+    success.value = '章节已创建'
+    chapterForm.title = ''
+    chapterForm.description = ''
+    chapterForm.displayOrder += 1
+    await loadDetail(offeringId.value)
+  } catch (requestError) {
+    error.value = errorMessage(requestError)
+  } finally {
+    savingChapter.value = false
+  }
+}
+
+function onResourceFile(event: Event) {
+  const target = event.target as HTMLInputElement
+  selectedFile.value = target.files?.[0]
+  if (selectedFile.value && !resourceForm.name) {
+    resourceForm.name = selectedFile.value.name.replace(/\.[^.]+$/, '')
+  }
+}
+
+async function uploadResource() {
+  if (!offeringId.value || !selectedFile.value) {
+    error.value = '请选择需要上传的文件'
+    return
+  }
+  uploading.value = true
+  error.value = ''
+  success.value = ''
+  try {
+    await api.uploadResource(offeringId.value, {
+      name: resourceForm.name,
+      resourceType: resourceForm.resourceType,
+      chapterId: resourceForm.chapterId,
+      description: resourceForm.description,
+      file: selectedFile.value,
+    })
+    success.value = '教学资源上传成功'
+    resourceForm.name = ''
+    resourceForm.description = ''
+    resourceForm.chapterId = undefined
+    selectedFile.value = undefined
+    await loadDetail(offeringId.value)
+  } catch (requestError) {
+    error.value = errorMessage(requestError)
+  } finally {
+    uploading.value = false
+  }
+}
+
+async function openResource(resource: CourseDetail['resources'][number]) {
+  try {
+    await api.downloadResource(resource.downloadUrl, resource.originalFilename || resource.name)
+  } catch (requestError) {
+    error.value = errorMessage(requestError)
+  }
+}
+
 watch(
   offeringId,
   (id) => {
+    success.value = ''
     if (id === undefined) {
       course.value = undefined
       loading.value = false
@@ -92,6 +190,9 @@ watch(
     <div v-if="error" class="error-banner">
       <AlertCircle :size="17" aria-hidden="true" />
       <span>{{ error }}</span>
+    </div>
+    <div v-if="success" class="success-banner">
+      <span>{{ success }}</span>
     </div>
 
     <LoadingBlock v-if="loading" />
@@ -178,6 +279,12 @@ watch(
             <CalendarDays :size="20" color="#667c8e" aria-hidden="true" />
           </div>
 
+          <div v-if="course.chapters.length > 0" class="chapter-strip">
+            <span v-for="chapter in course.chapters" :key="chapter.id">
+              {{ chapter.title }} · {{ chapter.resourceCount }}
+            </span>
+          </div>
+
           <EmptyState
             v-if="course.resources.length === 0"
             compact
@@ -199,19 +306,87 @@ watch(
                   {{ resource.resourceTypeLabel }} · {{ formatDateTime(resource.uploadedAt) }}
                 </span>
               </div>
-              <a
+              <button
                 class="icon-button"
-                :href="resource.url"
-                target="_blank"
-                rel="noreferrer"
+                type="button"
                 :title="`打开${resource.name}`"
+                @click="openResource(resource)"
               >
-                <ExternalLink :size="15" aria-hidden="true" />
-              </a>
+                <Download :size="15" aria-hidden="true" />
+              </button>
             </article>
           </div>
         </aside>
       </div>
+
+      <section v-if="canManage" class="panel">
+        <div class="panel-header">
+          <div>
+            <h2>教师资源管理</h2>
+            <p>创建章节并上传课件、教案或视频，上传后学生可在课程详情和资源库检索。</p>
+          </div>
+          <UploadCloud :size="21" color="#667c8e" aria-hidden="true" />
+        </div>
+
+        <div class="management-grid">
+          <form class="form-stack" @submit.prevent="createChapter">
+            <h3>新增章节</h3>
+            <label class="field">
+              <span>章节名称</span>
+              <input v-model="chapterForm.title" required maxlength="128" placeholder="例如 第 1 章 课程导论" />
+            </label>
+            <label class="field">
+              <span>章节顺序</span>
+              <input v-model.number="chapterForm.displayOrder" required type="number" min="1" />
+            </label>
+            <label class="field">
+              <span>章节说明</span>
+              <input v-model="chapterForm.description" maxlength="512" placeholder="简要说明章节内容" />
+            </label>
+            <button class="button" type="submit" :disabled="savingChapter">
+              {{ savingChapter ? '正在创建' : '创建章节' }}
+            </button>
+          </form>
+
+          <form class="form-stack" @submit.prevent="uploadResource">
+            <h3>上传教学资源</h3>
+            <div class="form-grid">
+              <label class="field">
+                <span>资源名称</span>
+                <input v-model="resourceForm.name" required maxlength="128" placeholder="请输入资源名称" />
+              </label>
+              <label class="field">
+                <span>资源类型</span>
+                <select v-model="resourceForm.resourceType">
+                  <option value="DOCUMENT">文档 / 教案</option>
+                  <option value="SLIDES">课件</option>
+                  <option value="VIDEO">视频</option>
+                </select>
+              </label>
+            </div>
+            <label class="field">
+              <span>所属章节</span>
+              <select v-model="resourceForm.chapterId">
+                <option :value="undefined">暂不归类</option>
+                <option v-for="chapter in course.chapters" :key="chapter.id" :value="chapter.id">
+                  {{ chapter.title }}
+                </option>
+              </select>
+            </label>
+            <label class="field">
+              <span>资源说明</span>
+              <input v-model="resourceForm.description" maxlength="512" placeholder="简要说明资源用途" />
+            </label>
+            <label class="field">
+              <span>选择文件</span>
+              <input type="file" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.md,.mp4,.webm,.zip" @change="onResourceFile" />
+            </label>
+            <button class="button button-primary" type="submit" :disabled="uploading">
+              {{ uploading ? '正在上传' : '上传资源' }}
+            </button>
+          </form>
+        </div>
+      </section>
     </template>
 
     <EmptyState

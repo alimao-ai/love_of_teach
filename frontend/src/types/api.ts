@@ -2,6 +2,24 @@ export type OfferingStatus = 'PLANNED' | 'OPEN' | 'CLOSED'
 
 export type ResourceType = 'DOCUMENT' | 'SLIDES' | 'VIDEO' | 'LINK'
 
+export type UserRole = 'DIRECTOR' | 'SUPERVISOR' | 'TEACHER' | 'ADMIN'
+
+export interface AuthUser {
+  id: number
+  username: string
+  displayName: string
+  role: UserRole
+  roleLabel: string
+  teacherId?: number
+  teacherNo?: string
+  teacherName?: string
+}
+
+export interface AuthResponse {
+  token: string
+  user: AuthUser
+}
+
 export interface Department {
   id: number
   code: string
@@ -69,6 +87,38 @@ export interface CourseResource {
   resourceTypeLabel: string
   url: string
   uploadedAt: string
+  chapterId?: number
+  chapterTitle?: string
+  description?: string
+  originalFilename?: string
+  fileSize?: number
+  downloadUrl: string
+}
+
+export interface ResourceChapter {
+  id: number
+  title: string
+  displayOrder: number
+  description?: string
+  resourceCount: number
+}
+
+export interface ResourceSearchItem {
+  id: number
+  name: string
+  resourceType: ResourceType
+  resourceTypeLabel: string
+  description?: string
+  chapterId?: number
+  chapterTitle?: string
+  offeringId: number
+  courseCode: string
+  courseName: string
+  teacherName: string
+  semesterName: string
+  className: string
+  uploadedAt: string
+  downloadUrl: string
 }
 
 export interface CourseDetail {
@@ -90,7 +140,55 @@ export interface CourseDetail {
   supervised: boolean
   supervisionCount: number
   resources: CourseResource[]
+  chapters: ResourceChapter[]
   resourceEmptyMessage?: string
+}
+
+export interface EvaluationSummaryItem {
+  offeringId: number
+  courseCode: string
+  courseName: string
+  teacherName: string
+  departmentName: string
+  semesterName: string
+  className: string
+  studentCount: number
+  averageScore: number
+  evaluationCount: number
+  latestComment?: string
+  latestEvaluatedAt?: string
+  weak: boolean
+}
+
+export interface EvaluationSummary {
+  evaluatedOfferingCount: number
+  evaluationCount: number
+  overallAverageScore: number
+  weakOfferingCount: number
+  items: EvaluationSummaryItem[]
+}
+
+export interface Evaluation {
+  id: number
+  offeringId: number
+  courseCode: string
+  courseName: string
+  teacherName: string
+  className: string
+  score: number
+  comment: string
+  reviewerName: string
+  evaluatedAt: string
+}
+
+export interface TeacherFeedback {
+  teacherId: number
+  teacherName: string
+  offeringCount: number
+  evaluationCount: number
+  overallAverageScore: number
+  courses: EvaluationSummaryItem[]
+  feedback: Evaluation[]
 }
 
 export interface CoverageSummary {

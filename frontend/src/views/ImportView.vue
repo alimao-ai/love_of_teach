@@ -77,6 +77,15 @@ function downloadFailures() {
   // 浏览器开始下载后再释放对象 URL，避免部分环境取消下载。
   window.setTimeout(() => URL.revokeObjectURL(url), 1_000)
 }
+
+async function downloadTemplate() {
+  error.value = ''
+  try {
+    await api.downloadTemplate()
+  } catch (requestError) {
+    error.value = errorMessage(requestError)
+  }
+}
 </script>
 
 <template>
@@ -89,10 +98,10 @@ function downloadFailures() {
         </p>
       </div>
       <div class="page-actions">
-        <a class="button" :href="api.templateUrl">
+        <button class="button" type="button" @click="downloadTemplate">
           <Download :size="16" aria-hidden="true" />
           下载 CSV 模板
-        </a>
+        </button>
       </div>
     </header>
 
@@ -106,7 +115,7 @@ function downloadFailures() {
         <div class="panel-header">
           <div>
             <h2>选择导入文件</h2>
-            <p>支持 UTF-8 编码的 .csv 文件，最大 5MB。</p>
+            <p>支持 UTF-8 编码的 .csv 文件，最大 10MB。</p>
           </div>
           <FileSpreadsheet :size="22" color="#667c8e" aria-hidden="true" />
         </div>

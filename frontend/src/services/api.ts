@@ -1,5 +1,7 @@
 import axios from 'axios'
 import type {
+  AuthResponse,
+  AuthUser,
   CourseDetail,
   CourseFilters,
   CourseListItem,
@@ -11,12 +13,44 @@ import type {
   SupervisionCoverage,
   Teacher,
   TeacherOverview,
+  Evaluation,
+  EvaluationSummary,
+  ResourceChapter,
+  ResourceSearchItem,
+  TeacherFeedback,
+  UserRole,
 } from '@/types/api'
+import { storageGet, storageRemove, TOKEN_KEY } from '@/stores/auth'
 
 const http = axios.create({
   baseURL: '/api',
   timeout: 15_000,
 })
+
+http.interceptors.request.use((config) => {
+  const token = storageGet(TOKEN_KEY)
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
+})
+
+http.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (
+      axios.isAxiosError(error) &&
+      error.response?.status === 401 &&
+      !window.location.pathname.startsWith('/login') &&
+      !window.location.pathname.startsWith('/register')
+    ) {
+      storageRemove(TOKEN_KEY)
+      storageRemove('love_of_teach_user')
+      window.location.assign('/login')
+    }
+    return Promise.reject(error)
+  },
+)
 
 function compactParams<T extends object>(params: T) {
   return Object.fromEntries(
@@ -25,6 +59,31 @@ function compactParams<T extends object>(params: T) {
 }
 
 export const api = {
+  async login(username: string, password: string) {
+    const { data } = await http.post<AuthResponse>('/auth/login', { username, password })
+    return data
+  },
+
+  async register(payload: {
+    username: string
+    displayName: string
+    password: string
+    role: UserRole
+    teacherNo?: string
+  }) {
+    const { data } = await http.post<AuthResponse>('/auth/register', payload)
+    return data
+  },
+
+  async logout() {
+    await http.post('/auth/logout')
+  },
+
+  async me() {
+    const { data } = await http.get<AuthUser>('/auth/me')
+    return data
+  },
+
   async listDepartments(activeOnly = false) {
     const { data } = await http.get<Department[]>('/departments', {
       params: { activeOnly },
@@ -95,6 +154,77 @@ export const api = {
     return data
   },
 
+  async listChapters(offeringId: number) {
+    const { data } = await http.get<ResourceChapter[]>(`/offerings/${offeringId}/chapters`)
+    return data
+  },
+
+  async createChapter(
+    offeringId: number,
+    payload: { title: string; displayOrder: number; description?: string },
+  ) {
+    const { data } = await http.post<ResourceChapter>(
+      `/offerings/${offeringId}/chapters`,
+      payload,
+    )
+    return data
+  },
+
+  async uploadResource(
+    offeringId: number,
+    payload: {
+      name: string
+      resourceType: string
+      chapterId?: number
+      description?: string
+      file: File
+    },
+  ) {
+    const formData = new FormData()
+    formData.append('name', payload.name)
+    formData.append('resourceType', payload.resourceType)
+    if (payload.chapterId) formData.append('chapterId', String(payload.chapterId))
+    if (payload.description) formData.append('description', payload.description)
+    formData.append('file', payload.file)
+    const { data } = await http.post(`/offerings/${offeringId}/resources`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    return data
+  },
+
+  async searchResources(params: {
+    semesterId?: number
+    departmentId?: number
+    offeringId?: number
+    chapterId?: number
+    resourceType?: string
+    keyword?: string
+  }) {
+    const { data } = await http.get<ResourceSearchItem[]>('/resources/search', {
+      params: compactParams(params),
+    })
+    return data
+  },
+
+  async submitEvaluation(payload: { offeringId: number; score: number; comment: string }) {
+    const { data } = await http.post<Evaluation>('/evaluations', payload)
+    return data
+  },
+
+  async evaluationSummary(filters: { semesterId?: number; departmentId?: number }) {
+    const { data } = await http.get<EvaluationSummary>('/evaluations/summary', {
+      params: compactParams(filters),
+    })
+    return data
+  },
+
+  async myFeedback(semesterId?: number) {
+    const { data } = await http.get<TeacherFeedback>('/evaluations/mine', {
+      params: compactParams({ semesterId }),
+    })
+    return data
+  },
+
   async getCoverage(filters: Pick<CourseFilters, 'semesterId' | 'departmentId'>) {
     const { data } = await http.get<SupervisionCoverage>('/supervision/coverage', {
       params: compactParams(filters),
@@ -111,7 +241,44 @@ export const api = {
     return data
   },
 
-  templateUrl: '/api/import/courses/template',
+  async downloadTemplate() {
+    const { data } = await http.get('/import/courses/template', { responseType: 'blob' })
+    downloadBlob(data, 'course-import-template.csv')
+  },
+
+  async exportOfferings(filters: {
+    semesterId?: number
+    departmentId?: number
+    teacherId?: number
+  }) {
+    const { data, headers } = await http.get('/reports/offerings/export', {
+      params: compactParams(filters),
+      responseType: 'blob',
+    })
+    const disposition = String(headers['content-disposition'] ?? '')
+    const match = disposition.match(/filename="?([^";]+)"?/i)
+    downloadBlob(data, match?.[1] ?? 'course-offering-report.csv')
+  },
+
+  async downloadResource(url: string, fallbackName = 'resource') {
+    if (/^https?:\/\//i.test(url)) {
+      window.open(url, '_blank', 'noopener,noreferrer')
+      return
+    }
+    const { data } = await http.get(url.replace(/^\/api/, ''), { responseType: 'blob' })
+    downloadBlob(data, fallbackName)
+  },
+}
+
+function downloadBlob(data: Blob, filename: string) {
+  const url = URL.createObjectURL(data)
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = filename
+  document.body.appendChild(anchor)
+  anchor.click()
+  anchor.remove()
+  window.setTimeout(() => URL.revokeObjectURL(url), 1_000)
 }
 
 export function errorMessage(error: unknown) {
