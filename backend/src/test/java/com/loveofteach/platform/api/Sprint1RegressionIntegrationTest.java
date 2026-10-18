@@ -198,6 +198,13 @@ class Sprint1RegressionIntegrationTest {
                 .role(UserRole.DIRECTOR)
                 .active(true)
                 .build());
+        userAccountRepository.save(UserAccount.builder()
+                .username("admin")
+                .displayName("系统管理员")
+                .passwordHash(passwordEncoder.encode("admin123"))
+                .role(UserRole.ADMIN)
+                .active(true)
+                .build());
     }
 
     @Test
@@ -303,7 +310,8 @@ class Sprint1RegressionIntegrationTest {
 
     @Test
     void catalogCreateUpdateKeepsSprint1SemanticsWhenAuthenticated() throws Exception {
-        String token = login("director", "director123");
+        // Catalog writes are administrator-only after the Sprint 2 review fix.
+        String token = login("admin", "admin123");
 
         mockMvc.perform(post("/api/semesters")
                         .header(HttpHeaders.AUTHORIZATION, bearer(token))
@@ -343,7 +351,8 @@ class Sprint1RegressionIntegrationTest {
 
     @Test
     void importKeepsSprint1SemanticsWhenAuthenticated() throws Exception {
-        String token = login("director", "director123");
+        // Course import is administrator-only after the Sprint 2 review fix.
+        String token = login("admin", "admin123");
         String csv = """
                 courseCode,courseName,departmentCode,credits,description,teacherNo,teacherName,semesterCode,className,studentCount,status
                 CS500,云计算基础,SOFTWARE,3.0,云平台课程,T008,周宁,2025-2026-2,软件2304,48,OPEN
