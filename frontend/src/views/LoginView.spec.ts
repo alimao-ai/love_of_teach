@@ -51,5 +51,7 @@ describe('LoginView', () => {
     expect(mocks.login).toHaveBeenCalledWith('teacher', 'teacher123')
     expect(mocks.saveAuth).toHaveBeenCalled()
     expect(mocks.push).toHaveBeenCalledWith('/courses')
+    expect(wrapper.text()).not.toContain('director123')
+    expect(wrapper.text()).not.toContain('admin123')
   })
 })

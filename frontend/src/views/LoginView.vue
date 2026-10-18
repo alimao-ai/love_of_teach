@@ -95,13 +95,6 @@ async function submit() {
           <RouterLink to="/register">注册新账号</RouterLink>
         </p>
 
-        <div class="demo-accounts">
-          <strong>演示账号</strong>
-          <span>主任：director / director123</span>
-          <span>督导：supervisor / supervisor123</span>
-          <span>教师：teacher / teacher123</span>
-          <span>管理员：admin / admin123</span>
-        </div>
       </form>
     </section>
   </div>

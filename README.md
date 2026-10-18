@@ -106,7 +106,9 @@ npm run build
 | 教师（李华） | `teacher2` | `teacher123` |
 | 管理员 | `admin` | `admin123` |
 
-教师注册需要填写已存在的教师工号。管理员账号不允许公开注册，只能由系统初始化或后续管理端创建。
+公开注册仅允许教师角色，且需要填写已存在的教师工号。督导、主任和管理员账号由系统初始化或后续管理端创建。
+
+演示账号仅记录在本 README 中，登录页和生产构建不展示账号密码。
 
 密码使用 BCrypt 哈希存储。令牌默认有效期为 24 小时，可在 `application.yml` 的 `app.auth.token-ttl-hours` 中修改。
 
@@ -145,7 +147,9 @@ courseCode,courseName,departmentCode,credits,description,teacherNo,teacherName,s
 - CSV 导入会拒绝停用院系和停用学期，避免继续产生新的业务引用。
 - 开发环境使用 H2 与 `ddl-auto: update` 便于快速启动。正式部署建议改用 MySQL/PostgreSQL，并将 JPA 配置调整为 `validate`，由 Flyway 管理数据库迁移。
 - 教学资源上传采用本地文件存储，正式部署时应替换为对象存储，并增加病毒扫描、文件大小配额和访问审计。
+- 上传文件除扩展名白名单外还会校验文件头；CSV 导出会转义电子表格公式前缀。
 - 当前令牌保存在浏览器 localStorage，适合原型验收。正式系统建议使用 HttpOnly Cookie、刷新令牌和 HTTPS。
+- 登录接口尚未实现失败次数限流，正式部署应在网关或认证服务中补充。
 
 ## 初始账号与角色
 

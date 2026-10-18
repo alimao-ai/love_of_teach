@@ -453,21 +453,6 @@ a {
   box-shadow: 0 0 0 3px rgba(45, 142, 202, 0.12);
 }
 
-.demo-accounts {
-  display: grid;
-  gap: 4px;
-  padding: 12px;
-  color: var(--ink-500);
-  background: var(--surface-muted);
-  border: 1px solid var(--line);
-  border-radius: 7px;
-  font-size: 11px;
-}
-
-.demo-accounts strong {
-  color: var(--ink-700);
-}
-
 
 .page {
   display: grid;

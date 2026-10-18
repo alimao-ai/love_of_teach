@@ -11,13 +11,11 @@ import {
 } from 'lucide-vue-next'
 import { api, errorMessage } from '@/services/api'
 import { saveAuth } from '@/stores/auth'
-import type { UserRole } from '@/types/api'
 
 const router = useRouter()
 const username = ref('')
 const displayName = ref('')
 const password = ref('')
-const role = ref<UserRole>('TEACHER')
 const teacherNo = ref('')
 const loading = ref(false)
 const error = ref('')
@@ -30,8 +28,8 @@ async function submit() {
       username: username.value.trim(),
       displayName: displayName.value.trim(),
       password: password.value,
-      role: role.value,
-      teacherNo: role.value === 'TEACHER' ? teacherNo.value.trim() : undefined,
+      role: 'TEACHER',
+      teacherNo: teacherNo.value.trim(),
     })
     saveAuth(response)
     await router.push('/courses')
@@ -56,7 +54,7 @@ async function submit() {
       <div class="auth-message">
         <span class="auth-kicker">身份注册</span>
         <h1>用一个角色账号进入对应教学质量工作区</h1>
-        <p>教师账号需要绑定教师工号，其他角色注册后可直接进入各自的业务页面。</p>
+        <p>公开注册用于创建教师账号并绑定教师工号，其他角色由管理员统一配置。</p>
       </div>
     </section>
 
@@ -95,21 +93,16 @@ async function submit() {
         </div>
 
         <label class="field">
-          <span>身份角色</span>
-          <select v-model="role">
-            <option value="TEACHER">教师</option>
-            <option value="SUPERVISOR">教学督导</option>
-            <option value="DIRECTOR">教研室主任</option>
-          </select>
-        </label>
-
-        <label v-if="role === 'TEACHER'" class="field">
           <span>教师工号</span>
           <div class="input-with-icon">
             <IdCard :size="16" aria-hidden="true" />
             <input v-model="teacherNo" required placeholder="例如 T001" />
           </div>
         </label>
+
+        <div class="success-banner">
+          <span>公开注册仅创建教师账号，督导、主任和管理员账号由管理员配置。</span>
+        </div>
 
         <label class="field">
           <span>密码</span>
