@@ -92,6 +92,23 @@ npm run typecheck
 npm run build
 ```
 
+## 持续集成
+
+仓库使用 GitHub Actions 执行 CI。工作流配置位于 `.github/workflows/ci.yml`，会在以下场景自动运行：
+
+- 向任意分支推送代码
+- 创建或更新 Pull Request
+- 在 GitHub Actions 页面手动触发
+
+流水线包含两个并行任务：
+
+| 任务 | 检查内容 |
+|---|---|
+| Backend tests | Java 17、Maven Wrapper、后端 JUnit/MockMvc 全量测试 |
+| Frontend tests and build | Node.js 22、`npm ci`、Vitest、TypeScript 类型检查、Vite 生产构建 |
+
+同一分支的新提交会自动取消旧流水线，避免重复占用执行资源。合并代码前应确认对应提交的 CI 全部通过。
+
 ## 登录与身份
 
 系统启动后首先进入登录页，也可以从登录页进入注册页。登录成功后，前端将令牌放入 `Authorization: Bearer <token>` 请求头，后端按角色开放对应接口。
