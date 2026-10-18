@@ -40,8 +40,19 @@ public class CourseResourceService {
     @Transactional(readOnly = true)
     public List<ResourceChapterResponse> listChapters(Long offeringId) {
         requireOffering(offeringId);
-        return chapterRepository.findByOfferingIdOrderByDisplayOrderAsc(offeringId).stream()
-                .map(chapter -> toChapterResponse(chapter, resourceRepository.countByChapterId(chapter.getId())))
+        List<ResourceChapter> chapters =
+                chapterRepository.findByOfferingIdOrderByDisplayOrderAsc(offeringId);
+        List<Long> chapterIds = chapters.stream().map(ResourceChapter::getId).toList();
+        var counts = chapterIds.isEmpty()
+                ? java.util.Map.<Long, Long>of()
+                : resourceRepository.countByChapterIds(chapterIds).stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        TeachingResourceRepository.ChapterResourceCount::getChapterId,
+                        TeachingResourceRepository.ChapterResourceCount::getResourceCount));
+        return chapters.stream()
+                .map(chapter -> toChapterResponse(
+                        chapter,
+                        counts.getOrDefault(chapter.getId(), 0L)))
                 .toList();
     }
 
@@ -86,11 +97,11 @@ public class CourseResourceService {
         }
         ResourceChapter chapter = resolveChapter(offeringId, chapterId);
         LocalFileStorageService.StoredFile stored = storageService.store(file);
-        TeachingResource resource = resourceRepository.save(TeachingResource.builder()
+        TeachingResource resource = TeachingResource.builder()
                 .offering(offering)
                 .name(name.trim())
                 .resourceType(resourceType)
-                .url("")
+                .url("/api/resources/files/" + stored.storageKey())
                 .chapter(chapter)
                 .description(description == null ? null : description.trim())
                 .originalFilename(stored.originalFilename())
@@ -98,8 +109,7 @@ public class CourseResourceService {
                 .fileSize(stored.fileSize())
                 .storageKey(stored.storageKey())
                 .uploadedAt(LocalDateTime.now())
-                .build());
-        resource.setUrl("/api/resources/" + resource.getId() + "/download");
+                .build();
         return toResourceResponse(resourceRepository.save(resource));
     }
 
@@ -143,6 +153,12 @@ public class CourseResourceService {
                 .orElseThrow(() -> new BusinessException("教学资源不存在", HttpStatus.NOT_FOUND));
     }
 
+    @Transactional(readOnly = true)
+    public TeachingResource requireResourceByStorageKey(String storageKey) {
+        return resourceRepository.findByStorageKey(storageKey)
+                .orElseThrow(() -> new BusinessException("教学资源不存在", HttpStatus.NOT_FOUND));
+    }
+
     public CourseResourceResponse toResourceResponse(TeachingResource resource) {
         ResourceChapter chapter = resource.getChapter();
         return new CourseResourceResponse(
@@ -159,7 +175,7 @@ public class CourseResourceService {
                 resource.getFileSize(),
                 resource.getStorageKey() == null
                         ? resource.getUrl()
-                        : "/api/resources/" + resource.getId() + "/download");
+                        : "/api/resources/files/" + resource.getStorageKey());
     }
 
     private CourseOffering requireOffering(Long offeringId) {
@@ -208,7 +224,7 @@ public class CourseResourceService {
                 resource.getUploadedAt(),
                 resource.getStorageKey() == null
                         ? resource.getUrl()
-                        : "/api/resources/" + resource.getId() + "/download");
+                        : "/api/resources/files/" + resource.getStorageKey());
     }
 
     private String resourceTypeLabel(ResourceType type) {

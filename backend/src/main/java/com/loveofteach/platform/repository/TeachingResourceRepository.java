@@ -7,10 +7,22 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 public interface TeachingResourceRepository extends JpaRepository<TeachingResource, Long> {
 
     List<TeachingResource> findByOfferingIdOrderByUploadedAtDesc(Long offeringId);
+
+    /**
+     * Loads resource chapters eagerly for course-detail screens.
+     */
+    @Query("""
+            select resource from TeachingResource resource
+            left join fetch resource.chapter
+            where resource.offering.id = :offeringId
+            order by resource.uploadedAt desc
+            """)
+    List<TeachingResource> findDetailedByOfferingId(@Param("offeringId") Long offeringId);
 
     long countByOfferingId(Long offeringId);
 
@@ -52,9 +64,27 @@ public interface TeachingResourceRepository extends JpaRepository<TeachingResour
 
     long countByChapterId(Long chapterId);
 
+    @Query("""
+            select resource.chapter.id as chapterId, count(resource) as resourceCount
+            from TeachingResource resource
+            where resource.chapter.id in :chapterIds
+            group by resource.chapter.id
+            """)
+    List<ChapterResourceCount> countByChapterIds(
+            @Param("chapterIds") Collection<Long> chapterIds);
+
+    Optional<TeachingResource> findByStorageKey(String storageKey);
+
     interface OfferingResourceCount {
 
         Long getOfferingId();
+
+        Long getResourceCount();
+    }
+
+    interface ChapterResourceCount {
+
+        Long getChapterId();
 
         Long getResourceCount();
     }

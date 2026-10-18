@@ -1,7 +1,10 @@
 package com.loveofteach.platform.api;
 
 import com.loveofteach.platform.api.dto.ImportResultResponse;
+import com.loveofteach.platform.common.UserRole;
+import com.loveofteach.platform.service.AuthorizationService;
 import com.loveofteach.platform.service.CourseImportService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
@@ -22,6 +25,7 @@ import java.nio.charset.StandardCharsets;
 public class CourseImportController {
 
     private final CourseImportService courseImportService;
+    private final AuthorizationService authorizationService;
 
     @GetMapping("/template")
     public ResponseEntity<byte[]> downloadTemplate() {
@@ -34,7 +38,11 @@ public class CourseImportController {
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ImportResultResponse importCourses(@RequestParam("file") MultipartFile file) {
+    public ImportResultResponse importCourses(
+            @RequestParam("file") MultipartFile file,
+            HttpServletRequest servletRequest
+    ) {
+        authorizationService.requireRole(servletRequest, UserRole.ADMIN);
         return courseImportService.importCourses(file);
     }
 }

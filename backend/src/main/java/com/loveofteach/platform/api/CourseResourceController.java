@@ -111,6 +111,17 @@ public class CourseResourceController {
     @GetMapping("/resources/{resourceId}/download")
     public ResponseEntity<Resource> download(@PathVariable Long resourceId) {
         TeachingResource teachingResource = resourceService.requireResource(resourceId);
+        return downloadResource(teachingResource);
+    }
+
+    @GetMapping("/resources/files/{storageKey}")
+    public ResponseEntity<Resource> downloadByStorageKey(@PathVariable String storageKey) {
+        TeachingResource teachingResource =
+                resourceService.requireResourceByStorageKey(storageKey);
+        return downloadResource(teachingResource);
+    }
+
+    private ResponseEntity<Resource> downloadResource(TeachingResource teachingResource) {
         if (teachingResource.getStorageKey() == null) {
             return ResponseEntity.status(302)
                     .header(HttpHeaders.LOCATION, teachingResource.getUrl())

@@ -6,7 +6,10 @@ import com.loveofteach.platform.api.dto.SemesterRequest;
 import com.loveofteach.platform.api.dto.SemesterResponse;
 import com.loveofteach.platform.api.dto.StatusRequest;
 import com.loveofteach.platform.api.dto.TeacherResponse;
+import com.loveofteach.platform.common.UserRole;
 import com.loveofteach.platform.service.CatalogService;
+import com.loveofteach.platform.service.AuthorizationService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -27,6 +30,7 @@ import java.util.List;
 public class CatalogController {
 
     private final CatalogService catalogService;
+    private final AuthorizationService authorizationService;
 
     @GetMapping("/departments")
     public List<DepartmentResponse> listDepartments(
@@ -41,23 +45,31 @@ public class CatalogController {
     }
 
     @PostMapping("/departments")
-    public DepartmentResponse createDepartment(@Valid @RequestBody DepartmentRequest request) {
+    public DepartmentResponse createDepartment(
+            @Valid @RequestBody DepartmentRequest request,
+            HttpServletRequest servletRequest
+    ) {
+        authorizationService.requireRole(servletRequest, UserRole.ADMIN);
         return catalogService.createDepartment(request);
     }
 
     @PutMapping("/departments/{id}")
     public DepartmentResponse updateDepartment(
             @PathVariable Long id,
-            @Valid @RequestBody DepartmentRequest request
+            @Valid @RequestBody DepartmentRequest request,
+            HttpServletRequest servletRequest
     ) {
+        authorizationService.requireRole(servletRequest, UserRole.ADMIN);
         return catalogService.updateDepartment(id, request);
     }
 
     @PatchMapping("/departments/{id}/status")
     public DepartmentResponse updateDepartmentStatus(
             @PathVariable Long id,
-            @Valid @RequestBody StatusRequest request
+            @Valid @RequestBody StatusRequest request,
+            HttpServletRequest servletRequest
     ) {
+        authorizationService.requireRole(servletRequest, UserRole.ADMIN);
         return catalogService.updateDepartmentStatus(id, request.active());
     }
 
@@ -74,23 +86,31 @@ public class CatalogController {
     }
 
     @PostMapping("/semesters")
-    public SemesterResponse createSemester(@Valid @RequestBody SemesterRequest request) {
+    public SemesterResponse createSemester(
+            @Valid @RequestBody SemesterRequest request,
+            HttpServletRequest servletRequest
+    ) {
+        authorizationService.requireRole(servletRequest, UserRole.ADMIN);
         return catalogService.createSemester(request);
     }
 
     @PutMapping("/semesters/{id}")
     public SemesterResponse updateSemester(
             @PathVariable Long id,
-            @Valid @RequestBody SemesterRequest request
+            @Valid @RequestBody SemesterRequest request,
+            HttpServletRequest servletRequest
     ) {
+        authorizationService.requireRole(servletRequest, UserRole.ADMIN);
         return catalogService.updateSemester(id, request);
     }
 
     @PatchMapping("/semesters/{id}/status")
     public SemesterResponse updateSemesterStatus(
             @PathVariable Long id,
-            @Valid @RequestBody StatusRequest request
+            @Valid @RequestBody StatusRequest request,
+            HttpServletRequest servletRequest
     ) {
+        authorizationService.requireRole(servletRequest, UserRole.ADMIN);
         return catalogService.updateSemesterStatus(id, request.active());
     }
 

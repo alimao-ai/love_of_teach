@@ -47,8 +47,8 @@ public class AuthService {
         if (userAccountRepository.existsByUsernameIgnoreCase(username)) {
             throw new BusinessException("用户名已存在");
         }
-        if (request.role() == UserRole.ADMIN) {
-            throw new BusinessException("管理员账号由系统初始化，不能公开注册");
+        if (request.role() != UserRole.TEACHER) {
+            throw new BusinessException("公开注册仅允许教师角色，其他角色由管理员创建");
         }
         Teacher teacher = null;
         if (request.role() == UserRole.TEACHER) {

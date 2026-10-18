@@ -100,6 +100,7 @@ class Sprint2IntegrationTest {
     private Teacher teacherOne;
     private Teacher teacherTwo;
     private Department department;
+    private Semester semester;
     private CourseOffering offeringOne;
     private CourseOffering offeringTwo;
 
@@ -122,7 +123,7 @@ class Sprint2IntegrationTest {
                 .name("软件工程教研室")
                 .active(true)
                 .build());
-        Semester semester = semesterRepository.save(Semester.builder()
+        semester = semesterRepository.save(Semester.builder()
                 .code("2025-2026-2")
                 .name("2025-2026 学年第二学期")
                 .startDate(LocalDate.of(2026, 2, 23))
@@ -232,7 +233,7 @@ class Sprint2IntegrationTest {
     }
 
     @Test
-    void publicRegistrationCannotCreateAdministrator() throws Exception {
+    void publicRegistrationOnlyAllowsTeacherRole() throws Exception {
         mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -240,11 +241,40 @@ class Sprint2IntegrationTest {
                                   "username":"self_admin",
                                   "displayName":"越权管理员",
                                   "password":"adminpass",
-                                  "role":"ADMIN"
+                                  "role":"SUPERVISOR"
                                 }
                                 """))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("管理员账号由系统初始化，不能公开注册"));
+                .andExpect(jsonPath("$.message")
+                        .value("公开注册仅允许教师角色，其他角色由管理员创建"));
+    }
+
+    @Test
+    void nonAdminCannotModifyCatalogOrImportCourses() throws Exception {
+        String token = login("teacher", "teacher123");
+        mockMvc.perform(post("/api/semesters")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "code":"2026-2027-2",
+                                  "name":"越权学期",
+                                  "startDate":"2027-02-20",
+                                  "endDate":"2027-07-01",
+                                  "active":true
+                                }
+                                """))
+                .andExpect(status().isForbidden());
+
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "courses.csv",
+                "text/csv",
+                "courseCode,courseName\n".getBytes(StandardCharsets.UTF_8));
+        mockMvc.perform(multipart("/api/import/courses")
+                        .file(file)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(token)))
+                .andExpect(status().isForbidden());
     }
 
     @Test
@@ -264,7 +294,7 @@ class Sprint2IntegrationTest {
                 "file",
                 "lesson-plan.pdf",
                 "application/pdf",
-                "lesson plan".getBytes(StandardCharsets.UTF_8));
+                "%PDF-1.4\nlesson plan".getBytes(StandardCharsets.UTF_8));
         mockMvc.perform(multipart("/api/offerings/{id}/resources", offeringOne.getId())
                         .file(file)
                         .param("name", "第一章教案")
@@ -288,6 +318,25 @@ class Sprint2IntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].courseCode").value("CS101"));
+    }
+
+    @Test
+    void uploadRejectsFileContentThatDoesNotMatchExtension() throws Exception {
+        String token = login("teacher", "teacher123");
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "fake.pdf",
+                "application/pdf",
+                "not a real pdf".getBytes(StandardCharsets.UTF_8));
+
+        mockMvc.perform(multipart("/api/offerings/{id}/resources", offeringOne.getId())
+                        .file(file)
+                        .param("name", "伪造文件")
+                        .param("resourceType", "DOCUMENT")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(token)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message")
+                        .value(org.hamcrest.Matchers.containsString("文件内容与扩展名不匹配")));
     }
 
     @Test
@@ -374,6 +423,34 @@ class Sprint2IntegrationTest {
         assertThat(csv).contains("课程代码,课程名称");
         assertThat(csv).contains("CS101");
         assertThat(csv).contains("张明");
+    }
+
+    @Test
+    void reportEscapesSpreadsheetFormulaInjection() throws Exception {
+        Course formulaCourse = courseRepository.save(Course.builder()
+                .code("XLS1")
+                .name("=1+1")
+                .credits(new BigDecimal("1.0"))
+                .description("公式注入测试")
+                .department(department)
+                .active(true)
+                .build());
+        offeringRepository.save(CourseOffering.builder()
+                .course(formulaCourse)
+                .teacher(teacherOne)
+                .semester(semester)
+                .className("软件2399")
+                .studentCount(10)
+                .status(OfferingStatus.OPEN)
+                .build());
+
+        String csv = mockMvc.perform(get("/api/reports/offerings/export")
+                        .header(HttpHeaders.AUTHORIZATION,
+                                bearer(login("director", "director123"))))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+
+        assertThat(csv).contains("'=1+1");
     }
 
     private String login(String username, String password) throws Exception {

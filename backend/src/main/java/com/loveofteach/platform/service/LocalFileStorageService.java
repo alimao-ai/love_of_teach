@@ -9,6 +9,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -44,6 +45,7 @@ public class LocalFileStorageService {
         if (!ALLOWED_EXTENSIONS.contains(extension)) {
             throw new BusinessException("不支持的文件类型：" + extension);
         }
+        validateContent(file, extension);
         String storageKey = UUID.randomUUID().toString().replace("-", "") + "." + extension;
         Path target = root.resolve(storageKey).normalize();
         if (!target.startsWith(root)) {
@@ -84,6 +86,64 @@ public class LocalFileStorageService {
             throw new BusinessException("文件缺少扩展名");
         }
         return filename.substring(index + 1).toLowerCase(Locale.ROOT);
+    }
+
+    /**
+     * Rejects files whose leading bytes do not match the declared extension.
+     * This prevents a renamed executable or arbitrary binary from bypassing the
+     * extension whitelist.
+     */
+    private void validateContent(MultipartFile file, String extension) {
+        byte[] header;
+        try (InputStream input = file.getInputStream()) {
+            header = input.readNBytes(512);
+        } catch (IOException exception) {
+            throw new BusinessException("文件读取失败：" + exception.getMessage());
+        }
+        boolean valid = switch (extension) {
+            case "pdf" -> startsWith(header, new byte[]{'%', 'P', 'D', 'F'});
+            case "docx", "pptx", "xlsx", "zip" ->
+                    startsWith(header, new byte[]{'P', 'K', 3, 4})
+                            || startsWith(header, new byte[]{'P', 'K', 5, 6})
+                            || startsWith(header, new byte[]{'P', 'K', 7, 8});
+            case "doc", "ppt", "xls" ->
+                    startsWith(header, new byte[]{(byte) 0xD0, (byte) 0xCF, 0x11, (byte) 0xE0});
+            case "mp4" -> header.length >= 8
+                    && header[4] == 'f' && header[5] == 't' && header[6] == 'y' && header[7] == 'p';
+            case "webm" ->
+                    startsWith(header, new byte[]{0x1A, 0x45, (byte) 0xDF, (byte) 0xA3});
+            case "txt", "md" -> isText(header);
+            default -> false;
+        };
+        if (!valid) {
+            throw new BusinessException("文件内容与扩展名不匹配：" + extension);
+        }
+    }
+
+    private boolean startsWith(byte[] value, byte[] prefix) {
+        if (value.length < prefix.length) {
+            return false;
+        }
+        for (int index = 0; index < prefix.length; index++) {
+            if (value[index] != prefix[index]) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean isText(byte[] value) {
+        if (value.length == 0) {
+            return false;
+        }
+        for (byte current : value) {
+            int unsigned = Byte.toUnsignedInt(current);
+            if (unsigned == 0 || (unsigned < 0x09)
+                    || (unsigned > 0x0D && unsigned < 0x20)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     public record StoredFile(

@@ -1,7 +1,9 @@
 package com.loveofteach.platform.repository;
 
 import com.loveofteach.platform.domain.CourseOffering;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -39,6 +41,21 @@ public interface CourseOfferingRepository extends JpaRepository<CourseOffering, 
             where o.id = :id
             """)
     Optional<CourseOffering> findDetailedById(@Param("id") Long id);
+
+    /**
+     * Serializes first-evaluation processing for an offering so the supervision
+     * record cannot be inserted twice by concurrent evaluators.
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            select o from CourseOffering o
+            join fetch o.course c
+            join fetch o.teacher t
+            join fetch t.department d
+            join fetch o.semester s
+            where o.id = :id
+            """)
+    Optional<CourseOffering> findDetailedByIdForUpdate(@Param("id") Long id);
 
     Optional<CourseOffering> findByCourseIdAndTeacherIdAndSemesterIdAndClassName(
             Long courseId, Long teacherId, Long semesterId, String className);

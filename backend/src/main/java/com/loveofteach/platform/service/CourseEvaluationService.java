@@ -45,7 +45,7 @@ public class CourseEvaluationService {
     @Transactional
     public EvaluationResponse submit(SubmitEvaluationRequest request, RequestUser user) {
         authorizationService.requireAnyRole(user, UserRole.SUPERVISOR, UserRole.DIRECTOR);
-        CourseOffering offering = offeringRepository.findDetailedById(request.offeringId())
+        CourseOffering offering = offeringRepository.findDetailedByIdForUpdate(request.offeringId())
                 .orElseThrow(() -> new BusinessException("开课记录不存在", HttpStatus.NOT_FOUND));
         UserAccount reviewer = userAccountRepository.findById(user.userId())
                 .orElseThrow(() -> new BusinessException("用户不存在", HttpStatus.UNAUTHORIZED));
