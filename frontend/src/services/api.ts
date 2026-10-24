@@ -79,6 +79,7 @@ export const api = {
     password: string
     role: UserRole
     teacherNo?: string
+    registrationCode?: string
   }) {
     const { data } = await http.post<AuthResponse>('/auth/register', payload)
     return data

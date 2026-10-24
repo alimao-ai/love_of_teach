@@ -6,6 +6,7 @@ import {
   ArrowRight,
   GraduationCap,
   IdCard,
+  KeyRound,
   LockKeyhole,
   UserRound,
 } from 'lucide-vue-next'
@@ -17,6 +18,7 @@ const username = ref('')
 const displayName = ref('')
 const password = ref('')
 const teacherNo = ref('')
+const registrationCode = ref('')
 const loading = ref(false)
 const error = ref('')
 
@@ -30,6 +32,7 @@ async function submit() {
       password: password.value,
       role: 'TEACHER',
       teacherNo: teacherNo.value.trim(),
+      registrationCode: registrationCode.value.trim(),
     })
     saveAuth(response)
     await router.push('/courses')
@@ -100,8 +103,22 @@ async function submit() {
           </div>
         </label>
 
+        <label class="field">
+          <span>教师注册邀请码</span>
+          <div class="input-with-icon">
+            <KeyRound :size="16" aria-hidden="true" />
+            <input
+              v-model="registrationCode"
+              required
+              maxlength="128"
+              autocomplete="off"
+              placeholder="请输入管理员提供的邀请码"
+            />
+          </div>
+        </label>
+
         <div class="success-banner">
-          <span>公开注册仅创建教师账号，督导、主任和管理员账号由管理员配置。</span>
+          <span>教师注册需要邀请码，督导、主任和管理员账号由管理员配置。</span>
         </div>
 
         <label class="field">
