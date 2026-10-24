@@ -27,8 +27,8 @@
 - [x] 前端 Vitest 全量通过
 - [x] TypeScript 类型检查通过
 - [x] Vite 生产构建通过
-- [ ] Sprint 3 GitHub Actions 运行记录成功
-- [ ] 将 CI 运行链接与运行编号写入 `docs/ci-evidence.md`
+- [x] Sprint 3 GitHub Actions 运行记录成功
+- [x] 将 CI 运行链接与运行编号写入 `docs/ci-evidence.md`
 
 ## 运行验证
 
@@ -43,8 +43,8 @@
 - [x] `README.md` 包含启动、测试、角色与 Sprint 3 功能说明
 - [x] `docs/release-notes.md` 包含用户故事、技术债与验证结果
 - [x] `docs/release-checklist.md` 包含人工验收检查项
-- [ ] 创建 `v1.0.0-sprint3` 发布标签
-- [ ] 推送功能分支并确认远端提交
+- [x] 创建 `v1.0.0-sprint3` 发布标签
+- [x] 推送功能分支并确认远端提交
 
 ## 人工签收
 

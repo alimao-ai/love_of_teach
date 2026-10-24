@@ -1,6 +1,36 @@
 # GitHub Actions CI 通过记录
 
-## 运行信息
+## Sprint 3 最新运行
+
+| 项目 | 内容 |
+|---|---|
+| 工作流名称 | `CI` |
+| 运行编号 | `#3` |
+| Run ID | `40081830683` |
+| 分支 | `feature/sprint3-evaluation-closure-release` |
+| 提交 | `cc3572f31a9ac16d46687fa8eeed162a2c5670fe` |
+| 提交说明 | `docs: add sprint3 release guide and acceptance checklist` |
+| 运行结论 | **Success** |
+| 运行链接 | https://github.com/alimao-ai/love_of_teach/actions/runs/40081830683 |
+
+### 任务结果
+
+| 任务 | 检查内容 | 结果 |
+|---|---|---|
+| Backend tests | Java 17、Maven Wrapper、后端全量 JUnit/MockMvc `verify` | **Success** |
+| Frontend tests and build | Node.js 22、`npm ci`、Vitest、TypeScript 类型检查、Vite 生产构建 | **Success** |
+
+### 对应测试结果
+
+- 后端：40 个测试通过，包含 Sprint 1、Sprint 2、Sprint 3、角色权限和技术债回归。
+- 前端：11 个测试文件、15 个 Vitest 用例通过。
+- TypeScript 类型检查通过。
+- Vite 生产构建通过。
+- 本地 `npm audit --omit=dev`：0 个已知漏洞。
+
+## Sprint 2 历史记录
+
+### 运行信息
 
 | 项目 | 内容 |
 |---|---|
@@ -13,14 +43,14 @@
 | 运行结论 | **Success** |
 | 运行链接 | https://github.com/alimao-ai/love_of_teach/actions/runs/39120087569 |
 
-## 任务结果
+### 任务结果
 
 | 任务 | 检查内容 | 结果 |
 |---|---|---|
 | Backend tests | Java 17、Maven Wrapper、后端全部 JUnit/MockMvc 测试 | **Success** |
 | Frontend tests and build | Node.js 22、`npm ci`、Vitest、TypeScript 类型检查、Vite 生产构建 | **Success** |
 
-## 对应测试结果
+### 对应测试结果
 
 - 后端：33 个测试通过，包含 Sprint 1、鉴权回归和 Sprint 2 集成测试。
 - 前端：11 个测试通过。
