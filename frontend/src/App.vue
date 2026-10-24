@@ -2,7 +2,11 @@
 import { computed } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import {
+  Bell,
   BookOpen,
+  Building2,
+  CalendarDays,
+  BarChart3,
   ClipboardCheck,
   ChevronRight,
   Database,
@@ -50,6 +54,27 @@ const allNavItems: Array<{
     roles: ['SUPERVISOR', 'DIRECTOR', 'ADMIN'],
   },
   {
+    to: '/drilldown',
+    label: '学院钻取',
+    caption: '督导 / 主任',
+    icon: Building2,
+    roles: ['SUPERVISOR', 'DIRECTOR', 'ADMIN'],
+  },
+  {
+    to: '/supervision-plans',
+    label: '听评课计划',
+    caption: '执行与进度',
+    icon: CalendarDays,
+    roles: ['SUPERVISOR', 'DIRECTOR', 'ADMIN'],
+  },
+  {
+    to: '/resource-coverage',
+    label: '资源覆盖率',
+    caption: '低覆盖定位',
+    icon: BarChart3,
+    roles: ['SUPERVISOR', 'DIRECTOR', 'ADMIN'],
+  },
+  {
     to: '/evaluations',
     label: '课程评价',
     caption: '督导 / 主任',
@@ -68,6 +93,13 @@ const allNavItems: Array<{
     label: '我的反馈',
     caption: '教师',
     icon: MessageSquare,
+    roles: ['TEACHER'],
+  },
+  {
+    to: '/notifications',
+    label: '课程通知',
+    caption: '订阅与变更',
+    icon: Bell,
     roles: ['TEACHER'],
   },
   {
@@ -144,8 +176,8 @@ async function logout() {
       </nav>
 
       <div class="sidebar-footer">
-        <span>进阶 1 · 查课程</span>
-        <strong>Sprint 2</strong>
+        <span>进阶 1 · 评价闭环</span>
+        <strong>Sprint 3</strong>
       </div>
     </aside>
 

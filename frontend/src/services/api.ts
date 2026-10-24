@@ -3,13 +3,22 @@ import type {
   AuthResponse,
   AuthUser,
   CourseDetail,
+  CourseDrilldown,
   CourseFilters,
   CourseListItem,
+  CourseSubscriptionItem,
   Department,
   DepartmentPayload,
   ImportResult,
+  NotificationOverview,
+  ResourceCoverage,
+  ResourceQualityLevel,
+  ResourceQualityReview,
   Semester,
   SemesterPayload,
+  SupervisionPlanItem,
+  SupervisionPlanOverview,
+  SupervisionPlanStatus,
   SupervisionCoverage,
   Teacher,
   TeacherOverview,
@@ -142,6 +151,13 @@ export const api = {
     return data
   },
 
+  async courseDrilldown(filters: CourseFilters) {
+    const { data } = await http.get<CourseDrilldown>('/course-drilldown', {
+      params: compactParams(filters),
+    })
+    return data
+  },
+
   async teacherOverview(filters: CourseFilters) {
     const { data } = await http.get<TeacherOverview>('/courses/teacher-overview', {
       params: compactParams(filters),
@@ -206,6 +222,29 @@ export const api = {
     return data
   },
 
+  async updateResourceAvailability(id: number, active: boolean, reason?: string) {
+    const { data } = await http.patch<CourseDetail['resources'][number]>(
+      `/resources/${id}/availability`,
+      { active, reason },
+    )
+    return data
+  },
+
+  async reviewResource(
+    id: number,
+    payload: {
+      level: ResourceQualityLevel
+      comment?: string
+      recommended: boolean
+    },
+  ) {
+    const { data } = await http.post<ResourceQualityReview>(
+      `/resources/${id}/review`,
+      payload,
+    )
+    return data
+  },
+
   async submitEvaluation(payload: { offeringId: number; score: number; comment: string }) {
     const { data } = await http.post<Evaluation>('/evaluations', payload)
     return data
@@ -229,6 +268,61 @@ export const api = {
     const { data } = await http.get<SupervisionCoverage>('/supervision/coverage', {
       params: compactParams(filters),
     })
+    return data
+  },
+
+  async resourceCoverage(filters: Pick<CourseFilters, 'semesterId' | 'departmentId'>) {
+    const { data } = await http.get<ResourceCoverage>('/resource-coverage', {
+      params: compactParams(filters),
+    })
+    return data
+  },
+
+  async notificationOverview() {
+    const { data } = await http.get<NotificationOverview>('/notifications')
+    return data
+  },
+
+  async subscribeCourse(courseId: number) {
+    const { data } = await http.post<CourseSubscriptionItem>(
+      `/notifications/subscriptions/${courseId}`,
+    )
+    return data
+  },
+
+  async unsubscribeCourse(courseId: number) {
+    const { data } = await http.delete<CourseSubscriptionItem>(
+      `/notifications/subscriptions/${courseId}`,
+    )
+    return data
+  },
+
+  async markNotificationsRead() {
+    await http.patch('/notifications/read')
+  },
+
+  async supervisionPlans(filters: Pick<CourseFilters, 'semesterId' | 'departmentId'>) {
+    const { data } = await http.get<SupervisionPlanOverview>('/supervision/plans', {
+      params: compactParams(filters),
+    })
+    return data
+  },
+
+  async createSupervisionPlan(payload: {
+    offeringId: number
+    plannedDate: string
+    dueDate: string
+    note?: string
+  }) {
+    const { data } = await http.post<SupervisionPlanItem>('/supervision/plans', payload)
+    return data
+  },
+
+  async updateSupervisionPlanStatus(planId: number, status: SupervisionPlanStatus) {
+    const { data } = await http.patch<SupervisionPlanItem>(
+      `/supervision/plans/${planId}/status`,
+      { status },
+    )
     return data
   },
 

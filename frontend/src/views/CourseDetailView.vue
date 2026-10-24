@@ -10,9 +10,12 @@ import {
   FileText,
   FolderOpen,
   GraduationCap,
+  EyeOff,
   Link2,
   Presentation,
+  RotateCcw,
   ShieldCheck,
+  Star,
   UploadCloud,
   Users,
   Video,
@@ -34,6 +37,7 @@ const error = ref('')
 const success = ref('')
 const savingChapter = ref(false)
 const uploading = ref(false)
+const busyResourceId = ref<number>()
 const selectedFile = ref<File>()
 
 const chapterForm = reactive({
@@ -148,6 +152,27 @@ async function openResource(resource: CourseDetail['resources'][number]) {
     await api.downloadResource(resource.downloadUrl, resource.originalFilename || resource.name)
   } catch (requestError) {
     error.value = errorMessage(requestError)
+  }
+}
+
+async function toggleResourceAvailability(resource: CourseDetail['resources'][number]) {
+  let reason: string | undefined
+  if (resource.active) {
+    const input = window.prompt('请输入资源下架原因', '课程内容已更新')
+    if (input === null) return
+    reason = input.trim() || '课程内容已更新'
+  }
+  busyResourceId.value = resource.id
+  error.value = ''
+  success.value = ''
+  try {
+    await api.updateResourceAvailability(resource.id, !resource.active, reason)
+    success.value = resource.active ? '资源已下架，普通资源检索中不再显示' : '资源已恢复上架'
+    await loadDetail(course.value!.offeringId)
+  } catch (requestError) {
+    error.value = errorMessage(requestError)
+  } finally {
+    busyResourceId.value = undefined
   }
 }
 
@@ -296,6 +321,7 @@ watch(
               v-for="resource in course.resources"
               :key="resource.id"
               class="resource-item"
+              :class="{ 'inactive-resource': !resource.active }"
             >
               <div class="resource-icon">
                 <component :is="resourceIcons[resource.resourceType]" :size="18" aria-hidden="true" />
@@ -305,15 +331,38 @@ watch(
                 <span>
                   {{ resource.resourceTypeLabel }} · {{ formatDateTime(resource.uploadedAt) }}
                 </span>
+                <span class="resource-meta">
+                  <span v-if="resource.qualityLevelLabel" class="quality-badge">
+                    {{ resource.qualityLevelLabel }}
+                  </span>
+                  <span v-if="resource.recommended" class="recommended-mark">
+                    <Star :size="12" aria-hidden="true" />
+                    推荐
+                  </span>
+                  <span v-if="!resource.active" class="inactive-mark">已下架</span>
+                </span>
               </div>
-              <button
-                class="icon-button"
-                type="button"
-                :title="`打开${resource.name}`"
-                @click="openResource(resource)"
-              >
-                <Download :size="15" aria-hidden="true" />
-              </button>
+              <div class="resource-actions">
+                <button
+                  class="icon-button"
+                  type="button"
+                  :title="`打开${resource.name}`"
+                  @click="openResource(resource)"
+                >
+                  <Download :size="15" aria-hidden="true" />
+                </button>
+                <button
+                  v-if="canManage"
+                  class="icon-button"
+                  type="button"
+                  :disabled="busyResourceId === resource.id"
+                  :title="resource.active ? '下架资源' : '恢复资源'"
+                  @click="toggleResourceAvailability(resource)"
+                >
+                  <EyeOff v-if="resource.active" :size="15" aria-hidden="true" />
+                  <RotateCcw v-else :size="15" aria-hidden="true" />
+                </button>
+              </div>
             </article>
           </div>
         </aside>

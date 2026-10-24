@@ -67,6 +67,30 @@ const router = createRouter({
       meta: { roles: ['SUPERVISOR', 'DIRECTOR', 'ADMIN'] },
     },
     {
+      path: '/drilldown',
+      name: 'drilldown',
+      component: () => import('@/views/DepartmentDrilldownView.vue'),
+      meta: { roles: ['SUPERVISOR', 'DIRECTOR', 'ADMIN'] },
+    },
+    {
+      path: '/notifications',
+      name: 'notifications',
+      component: () => import('@/views/NotificationsView.vue'),
+      meta: { roles: ['TEACHER'] },
+    },
+    {
+      path: '/supervision-plans',
+      name: 'supervision-plans',
+      component: () => import('@/views/SupervisionPlansView.vue'),
+      meta: { roles: ['SUPERVISOR', 'DIRECTOR', 'ADMIN'] },
+    },
+    {
+      path: '/resource-coverage',
+      name: 'resource-coverage',
+      component: () => import('@/views/ResourceCoverageView.vue'),
+      meta: { roles: ['SUPERVISOR', 'DIRECTOR', 'ADMIN'] },
+    },
+    {
       path: '/catalog',
       name: 'catalog',
       component: () => import('@/views/CatalogView.vue'),

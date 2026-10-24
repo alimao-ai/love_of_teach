@@ -1,10 +1,24 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
-import { AlertCircle, Download, FolderSearch, Search } from 'lucide-vue-next'
+import { computed, onMounted, reactive, ref } from 'vue'
+import {
+  AlertCircle,
+  CheckCircle2,
+  Download,
+  FolderSearch,
+  Search,
+  Star,
+} from 'lucide-vue-next'
 import EmptyState from '@/components/EmptyState.vue'
 import LoadingBlock from '@/components/LoadingBlock.vue'
 import { api, errorMessage } from '@/services/api'
-import type { Department, ResourceSearchItem, ResourceType, Semester } from '@/types/api'
+import { authState } from '@/stores/auth'
+import type {
+  Department,
+  ResourceQualityLevel,
+  ResourceSearchItem,
+  ResourceType,
+  Semester,
+} from '@/types/api'
 import { formatDateTime } from '@/utils/format'
 
 const departments = ref<Department[]>([])
@@ -16,6 +30,21 @@ const resourceType = ref<ResourceType | ''>('')
 const keyword = ref('')
 const loading = ref(false)
 const error = ref('')
+const success = ref('')
+const selectedReviewResource = ref<ResourceSearchItem>()
+const savingReview = ref(false)
+const reviewForm = reactive<{
+  level: ResourceQualityLevel
+  comment: string
+  recommended: boolean
+}>({
+  level: 'QUALIFIED',
+  comment: '',
+  recommended: false,
+})
+const canReview = computed(() =>
+  Boolean(authState.user && ['SUPERVISOR', 'DIRECTOR', 'ADMIN'].includes(authState.user.role)),
+)
 
 async function loadData() {
   loading.value = true
@@ -39,6 +68,36 @@ async function openResource(resource: ResourceSearchItem) {
     await api.downloadResource(resource.downloadUrl, resource.name)
   } catch (requestError) {
     error.value = errorMessage(requestError)
+  }
+}
+
+function startReview(resource: ResourceSearchItem) {
+  selectedReviewResource.value = resource
+  reviewForm.level = resource.qualityLevel ?? 'QUALIFIED'
+  reviewForm.comment = ''
+  reviewForm.recommended = resource.recommended
+  error.value = ''
+  success.value = ''
+}
+
+async function submitReview() {
+  if (!selectedReviewResource.value) return
+  savingReview.value = true
+  error.value = ''
+  success.value = ''
+  try {
+    await api.reviewResource(selectedReviewResource.value.id, {
+      level: reviewForm.level,
+      comment: reviewForm.comment.trim() || undefined,
+      recommended: reviewForm.recommended,
+    })
+    success.value = `已完成 ${selectedReviewResource.value.name} 的质量评审`
+    selectedReviewResource.value = undefined
+    await loadData()
+  } catch (requestError) {
+    error.value = errorMessage(requestError)
+  } finally {
+    savingReview.value = false
   }
 }
 
@@ -75,6 +134,10 @@ onMounted(async () => {
     <div v-if="error" class="error-banner">
       <AlertCircle :size="17" aria-hidden="true" />
       <span>{{ error }}</span>
+    </div>
+    <div v-if="success" class="success-banner">
+      <CheckCircle2 :size="17" aria-hidden="true" />
+      <span>{{ success }}</span>
     </div>
 
     <form class="filter-bar" @submit.prevent="loadData">
@@ -115,6 +178,46 @@ onMounted(async () => {
       </div>
     </form>
 
+    <section v-if="canReview && selectedReviewResource" class="panel">
+      <div class="panel-header">
+        <div>
+          <h2>资源质量评审</h2>
+          <p>{{ selectedReviewResource.courseName }} · {{ selectedReviewResource.name }}</p>
+        </div>
+        <Star :size="20" color="#667c8e" aria-hidden="true" />
+      </div>
+      <form class="review-form" @submit.prevent="submitReview">
+        <label class="field">
+          <span>质量等级</span>
+          <select v-model="reviewForm.level">
+            <option value="EXCELLENT">优质</option>
+            <option value="QUALIFIED">合格</option>
+            <option value="NEEDS_IMPROVEMENT">待改进</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>评审意见</span>
+          <input
+            v-model="reviewForm.comment"
+            maxlength="1000"
+            placeholder="填写资源内容、结构或适用性评价"
+          />
+        </label>
+        <label class="checkbox-row">
+          <input v-model="reviewForm.recommended" type="checkbox" />
+          推荐为优质资源
+        </label>
+        <div class="button-row">
+          <button class="button button-primary" type="submit" :disabled="savingReview">
+            {{ savingReview ? '正在保存' : '保存评审' }}
+          </button>
+          <button class="button" type="button" @click="selectedReviewResource = undefined">
+            取消
+          </button>
+        </div>
+      </form>
+    </section>
+
     <section class="panel panel-flush">
       <div class="panel-header" style="padding: 18px 20px 0; margin-bottom: 12px">
         <div>
@@ -137,6 +240,7 @@ onMounted(async () => {
               <th>类型</th>
               <th>章节</th>
               <th>课程 / 教师</th>
+              <th>质量</th>
               <th>上传时间</th>
               <th>操作</th>
             </tr>
@@ -155,11 +259,36 @@ onMounted(async () => {
                   {{ resource.courseCode }} · {{ resource.teacherName }} · {{ resource.className }}
                 </span>
               </td>
+              <td>
+                <span v-if="resource.qualityLevelLabel" class="quality-badge">
+                  {{ resource.qualityLevelLabel }}
+                </span>
+                <span v-if="resource.recommended" class="recommended-mark">
+                  <Star :size="13" aria-hidden="true" />
+                  推荐
+                </span>
+                <span v-if="!resource.qualityLevelLabel" class="cell-sub">未评审</span>
+              </td>
               <td>{{ formatDateTime(resource.uploadedAt) }}</td>
               <td>
-                <button class="icon-button" type="button" title="下载或打开资源" @click="openResource(resource)">
-                  <Download :size="15" aria-hidden="true" />
-                </button>
+                <div class="button-row">
+                  <button
+                    class="icon-button"
+                    type="button"
+                    title="下载或打开资源"
+                    @click="openResource(resource)"
+                  >
+                    <Download :size="15" aria-hidden="true" />
+                  </button>
+                  <button
+                    v-if="canReview"
+                    class="button"
+                    type="button"
+                    @click="startReview(resource)"
+                  >
+                    评审
+                  </button>
+                </div>
               </td>
             </tr>
           </tbody>

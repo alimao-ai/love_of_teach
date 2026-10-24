@@ -2,6 +2,10 @@ export type OfferingStatus = 'PLANNED' | 'OPEN' | 'CLOSED'
 
 export type ResourceType = 'DOCUMENT' | 'SLIDES' | 'VIDEO' | 'LINK'
 
+export type ResourceQualityLevel = 'EXCELLENT' | 'QUALIFIED' | 'NEEDS_IMPROVEMENT'
+
+export type SupervisionPlanStatus = 'PLANNED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED'
+
 export type UserRole = 'DIRECTOR' | 'SUPERVISOR' | 'TEACHER' | 'ADMIN'
 
 export interface AuthUser {
@@ -50,6 +54,7 @@ export interface CourseListItem {
   offeringId: number
   courseCode: string
   courseName: string
+  departmentId: number
   departmentCode: string
   departmentName: string
   teacherId: number
@@ -93,6 +98,12 @@ export interface CourseResource {
   originalFilename?: string
   fileSize?: number
   downloadUrl: string
+  active: boolean
+  unavailableAt?: string
+  qualityLevel?: ResourceQualityLevel
+  qualityLevelLabel?: string
+  recommended: boolean
+  reviewComment?: string
 }
 
 export interface ResourceChapter {
@@ -119,6 +130,9 @@ export interface ResourceSearchItem {
   className: string
   uploadedAt: string
   downloadUrl: string
+  qualityLevel?: ResourceQualityLevel
+  qualityLevelLabel?: string
+  recommended: boolean
 }
 
 export interface CourseDetail {
@@ -213,6 +227,133 @@ export interface SupervisionCoverage {
   summary: CoverageSummary
   departmentBreakdown: DepartmentCoverage[]
   courses: CourseListItem[]
+}
+
+export interface DepartmentCourseDrilldown {
+  departmentId: number
+  departmentCode: string
+  departmentName: string
+  offeringCount: number
+  studentCount: number
+  supervisedOfferingCount: number
+  unsupervisedOfferingCount: number
+  supervisionCoverageRate: number
+  courses: CourseListItem[]
+}
+
+export interface CourseDrilldown {
+  departmentCount: number
+  offeringCount: number
+  studentCount: number
+  supervisedOfferingCount: number
+  unsupervisedOfferingCount: number
+  supervisionCoverageRate: number
+  departments: DepartmentCourseDrilldown[]
+}
+
+export interface CourseSubscriptionItem {
+  courseId: number
+  courseCode: string
+  courseName: string
+  teacherName: string
+  subscribed: boolean
+}
+
+export interface CourseNotification {
+  id: number
+  courseId: number
+  courseCode: string
+  courseName: string
+  title: string
+  message: string
+  createdAt: string
+  readAt?: string
+  read: boolean
+}
+
+export interface NotificationOverview {
+  unreadCount: number
+  notifications: CourseNotification[]
+  courses: CourseSubscriptionItem[]
+}
+
+export interface SupervisionPlanItem {
+  id: number
+  offeringId: number
+  courseCode: string
+  courseName: string
+  departmentName: string
+  teacherName: string
+  className: string
+  semesterName: string
+  plannedDate: string
+  dueDate: string
+  status: SupervisionPlanStatus
+  statusLabel: string
+  overdue: boolean
+  note?: string
+  supervisorName: string
+  completedAt?: string
+}
+
+export interface SupervisionPlanSummary {
+  total: number
+  planned: number
+  inProgress: number
+  completed: number
+  overdue: number
+  progressRate: number
+}
+
+export interface SupervisionPlanOverview {
+  summary: SupervisionPlanSummary
+  plans: SupervisionPlanItem[]
+}
+
+export interface ResourceCoverageSummary {
+  offeringCount: number
+  coveredOfferingCount: number
+  uncoveredOfferingCount: number
+  coverageRate: number
+  resourceCount: number
+}
+
+export interface DepartmentResourceCoverage {
+  departmentId: number
+  departmentCode: string
+  departmentName: string
+  offeringCount: number
+  coveredOfferingCount: number
+  uncoveredOfferingCount: number
+  coverageRate: number
+}
+
+export interface CourseResourceCoverage {
+  offeringId: number
+  courseCode: string
+  courseName: string
+  departmentName: string
+  teacherName: string
+  className: string
+  resourceCount: number
+  covered: boolean
+}
+
+export interface ResourceCoverage {
+  summary: ResourceCoverageSummary
+  departmentBreakdown: DepartmentResourceCoverage[]
+  courses: CourseResourceCoverage[]
+}
+
+export interface ResourceQualityReview {
+  id: number
+  resourceId: number
+  level: ResourceQualityLevel
+  levelLabel: string
+  comment?: string
+  recommended: boolean
+  reviewerName: string
+  reviewedAt: string
 }
 
 export interface ImportFailure {
