@@ -32,6 +32,12 @@
 - [x] Sprint 3 GitHub Actions 运行记录成功
 - [x] 将 CI 运行链接与运行编号写入 `docs/ci-evidence.md`
 
+## 技术债与发布材料
+
+- [x] 影响正确性和安全性的关键债务已清偿
+- [x] 结转债务已登记原因、影响、责任角色、偿还里程碑和验收方式
+- [x] `docs/technical-debt-register.md` 已登记 TD-01 至 TD-05
+
 ## 运行验证
 
 - [x] 默认配置关闭演示种子和 H2 控制台，`dev` 配置可幂等初始化演示数据
@@ -45,7 +51,7 @@
 - [x] `README.md` 包含启动、测试、角色与 Sprint 3 功能说明
 - [x] `docs/release-notes.md` 包含用户故事、技术债与验证结果
 - [x] `docs/release-checklist.md` 包含人工验收检查项
-- [x] 创建 `v1.0.0-sprint3` 发布标签
+- [x] 创建 `v1.0.1-sprint3` 发布标签
 - [x] 推送功能分支并确认远端提交
 
 ## 人工签收
