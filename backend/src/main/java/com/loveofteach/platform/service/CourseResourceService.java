@@ -20,6 +20,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -103,6 +105,17 @@ public class CourseResourceService {
         }
         ResourceChapter chapter = resolveChapter(offeringId, chapterId);
         LocalFileStorageService.StoredFile stored = storageService.store(file);
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(
+                    new TransactionSynchronization() {
+                        @Override
+                        public void afterCompletion(int status) {
+                            if (status != TransactionSynchronization.STATUS_COMMITTED) {
+                                storageService.delete(stored.storageKey());
+                            }
+                        }
+                    });
+        }
         TeachingResource resource = TeachingResource.builder()
                 .offering(offering)
                 .name(name.trim())
@@ -117,7 +130,12 @@ public class CourseResourceService {
                 .active(true)
                 .uploadedAt(LocalDateTime.now())
                 .build();
-        return toResourceResponse(resourceRepository.save(resource));
+        try {
+            return toResourceResponse(resourceRepository.save(resource));
+        } catch (RuntimeException exception) {
+            storageService.delete(stored.storageKey());
+            throw exception;
+        }
     }
 
     @Transactional

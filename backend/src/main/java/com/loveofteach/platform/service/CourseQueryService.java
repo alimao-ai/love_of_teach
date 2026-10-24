@@ -10,6 +10,7 @@ import com.loveofteach.platform.api.dto.SupervisionCoverageResponse;
 import com.loveofteach.platform.api.dto.TeacherCourseGroupResponse;
 import com.loveofteach.platform.api.dto.TeacherOverviewResponse;
 import com.loveofteach.platform.common.BusinessException;
+import com.loveofteach.platform.common.UserRole;
 import com.loveofteach.platform.domain.CourseOffering;
 import com.loveofteach.platform.domain.Department;
 import com.loveofteach.platform.domain.SupervisionRecord;
@@ -19,6 +20,7 @@ import com.loveofteach.platform.repository.ResourceChapterRepository;
 import com.loveofteach.platform.repository.SupervisionRecordRepository;
 import com.loveofteach.platform.repository.TeacherRepository;
 import com.loveofteach.platform.repository.TeachingResourceRepository;
+import com.loveofteach.platform.security.RequestUser;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -46,6 +48,7 @@ public class CourseQueryService {
     private final TeacherRepository teacherRepository;
     private final ResourceChapterRepository chapterRepository;
     private final CourseResourceService courseResourceService;
+    private final AuthorizationService authorizationService;
 
     @Transactional(readOnly = true)
     public List<CourseListItemResponse> searchCourses(
@@ -146,7 +149,13 @@ public class CourseQueryService {
     }
 
     @Transactional(readOnly = true)
-    public SupervisionCoverageResponse getCoverage(Long semesterId, Long departmentId) {
+    public SupervisionCoverageResponse getCoverage(
+            Long semesterId,
+            Long departmentId,
+            RequestUser user
+    ) {
+        authorizationService.requireAnyRole(
+                user, UserRole.SUPERVISOR, UserRole.DIRECTOR, UserRole.ADMIN);
         List<CourseOffering> offerings = offeringRepository.search(semesterId, departmentId, null, null);
         Set<Long> supervisedIds = supervisedOfferingIds(offerings);
         List<CourseListItemResponse> courseItems = buildListItems(offerings, supervisedIds);

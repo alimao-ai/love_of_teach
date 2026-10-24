@@ -3,6 +3,7 @@ package com.loveofteach.platform.service;
 import com.loveofteach.platform.api.dto.ImportFailureResponse;
 import com.loveofteach.platform.api.dto.ImportResultResponse;
 import com.loveofteach.platform.common.BusinessException;
+import com.loveofteach.platform.common.CsvEscaper;
 import com.loveofteach.platform.common.OfferingStatus;
 import com.loveofteach.platform.domain.Course;
 import com.loveofteach.platform.domain.CourseOffering;
@@ -129,7 +130,7 @@ public class CourseImportService {
         String className = required(row, "className", "班级");
         int studentCount = parseNonNegativeInt(required(row, "studentCount", "学生人数"), "学生人数");
         OfferingStatus status = OfferingStatus.from(required(row, "status", "开课状态"));
-        BigDecimal credits = parseCredits(row.get("credits"));
+        BigDecimal credits = parseCredits(required(row, "credits", "学分"));
 
         Department department = departmentRepository.findByCodeIgnoreCase(departmentCode)
                 .orElseThrow(() -> new BusinessException("院系编码不存在：" + departmentCode));
@@ -253,7 +254,7 @@ public class CourseImportService {
 
     private BigDecimal parseCredits(String value) {
         if (!StringUtils.hasText(value)) {
-            return BigDecimal.ZERO;
+            throw new BusinessException("学分不能为空");
         }
         try {
             BigDecimal credits = new BigDecimal(value.trim());
@@ -277,21 +278,11 @@ public class CourseImportService {
         for (ImportFailureResponse failure : failures) {
             writer.write(String.join(",",
                     Long.toString(failure.rowNumber()),
-                    escapeCsv(failure.courseCode()),
-                    escapeCsv(failure.reason())));
+                    CsvEscaper.escape(failure.courseCode()),
+                    CsvEscaper.escape(failure.reason())));
             writer.write(System.lineSeparator());
         }
         return writer.toString();
-    }
-
-    private String escapeCsv(String value) {
-        if (value == null) {
-            return "";
-        }
-        if (value.contains(",") || value.contains("\"") || value.contains("\n") || value.contains("\r")) {
-            return "\"" + value.replace("\"", "\"\"") + "\"";
-        }
-        return value;
     }
 
     private String rootMessage(Throwable throwable) {

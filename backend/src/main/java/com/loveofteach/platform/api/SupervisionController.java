@@ -31,9 +31,11 @@ public class SupervisionController {
     @GetMapping("/coverage")
     public SupervisionCoverageResponse coverage(
             @RequestParam(required = false) Long semesterId,
-            @RequestParam(required = false) Long departmentId
+            @RequestParam(required = false) Long departmentId,
+            HttpServletRequest request
     ) {
-        return courseQueryService.getCoverage(semesterId, departmentId);
+        return courseQueryService.getCoverage(
+                semesterId, departmentId, AuthContext.current(request));
     }
 
     @GetMapping("/plans")

@@ -2,6 +2,7 @@ package com.loveofteach.platform.service;
 
 import com.loveofteach.platform.api.dto.ReportFileResponse;
 import com.loveofteach.platform.common.UserRole;
+import com.loveofteach.platform.common.CsvEscaper;
 import com.loveofteach.platform.domain.CourseEvaluation;
 import com.loveofteach.platform.domain.CourseOffering;
 import com.loveofteach.platform.domain.SupervisionRecord;
@@ -51,14 +52,14 @@ public class CourseReportService {
         StringBuilder csv = new StringBuilder("\uFEFF");
         csv.append("课程代码,课程名称,院系,教师,学期,班级,学生人次,开课状态,资源数,督导状态,平均评分\n");
         for (CourseOffering offering : offerings) {
-            csv.append(csvValue(offering.getCourse().getCode())).append(',')
-                    .append(csvValue(offering.getCourse().getName())).append(',')
-                    .append(csvValue(offering.getCourse().getDepartment().getName())).append(',')
-                    .append(csvValue(offering.getTeacher().getName())).append(',')
-                    .append(csvValue(offering.getSemester().getName())).append(',')
-                    .append(csvValue(offering.getClassName())).append(',')
+            csv.append(CsvEscaper.escape(offering.getCourse().getCode())).append(',')
+                    .append(CsvEscaper.escape(offering.getCourse().getName())).append(',')
+                    .append(CsvEscaper.escape(offering.getCourse().getDepartment().getName())).append(',')
+                    .append(CsvEscaper.escape(offering.getTeacher().getName())).append(',')
+                    .append(CsvEscaper.escape(offering.getSemester().getName())).append(',')
+                    .append(CsvEscaper.escape(offering.getClassName())).append(',')
                     .append(offering.getStudentCount()).append(',')
-                    .append(csvValue(offering.getStatus().getLabel())).append(',')
+                    .append(CsvEscaper.escape(offering.getStatus().getLabel())).append(',')
                     .append(resourceCounts.getOrDefault(offering.getId(), 0L)).append(',')
                     .append(supervisedIds.contains(offering.getId()) ? "已督导" : "待督导").append(',')
                     .append(evaluationAverages.containsKey(offering.getId())
@@ -106,16 +107,4 @@ public class CourseReportService {
                         Collectors.averagingInt(CourseEvaluation::getScore)));
     }
 
-    private String csvValue(String value) {
-        if (value == null) {
-            return "";
-        }
-        if (!value.isEmpty() && "=+-@\t\r".indexOf(value.charAt(0)) >= 0) {
-            value = "'" + value;
-        }
-        if (value.contains(",") || value.contains("\"") || value.contains("\n") || value.contains("\r")) {
-            return "\"" + value.replace("\"", "\"\"") + "\"";
-        }
-        return value;
-    }
 }

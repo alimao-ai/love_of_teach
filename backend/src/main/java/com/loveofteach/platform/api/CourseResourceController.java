@@ -8,6 +8,7 @@ import com.loveofteach.platform.api.dto.ResourceAvailabilityRequest;
 import com.loveofteach.platform.api.dto.ResourceQualityReviewRequest;
 import com.loveofteach.platform.api.dto.ResourceQualityReviewResponse;
 import com.loveofteach.platform.api.dto.ResourceSearchItemResponse;
+import com.loveofteach.platform.common.BusinessException;
 import com.loveofteach.platform.common.ResourceType;
 import com.loveofteach.platform.domain.TeachingResource;
 import com.loveofteach.platform.security.AuthContext;
@@ -18,6 +19,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
+import org.springframework.http.InvalidMediaTypeException;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -33,6 +35,8 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.nio.charset.StandardCharsets;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.List;
 
 @RestController
@@ -148,20 +152,50 @@ public class CourseResourceController {
 
     private ResponseEntity<Resource> downloadResource(TeachingResource teachingResource) {
         if (teachingResource.getStorageKey() == null) {
+            validateExternalUrl(teachingResource.getUrl());
             return ResponseEntity.status(302)
                     .header(HttpHeaders.LOCATION, teachingResource.getUrl())
                     .build();
         }
         Resource file = storageService.load(teachingResource.getStorageKey());
-        MediaType mediaType = teachingResource.getContentType() == null
-                ? MediaType.APPLICATION_OCTET_STREAM
-                : MediaType.parseMediaType(teachingResource.getContentType());
+        MediaType mediaType = safeMediaType(teachingResource.getContentType());
         ContentDisposition disposition = ContentDisposition.attachment()
                 .filename(teachingResource.getOriginalFilename(), StandardCharsets.UTF_8)
                 .build();
         return ResponseEntity.ok()
                 .contentType(mediaType)
+                .header("X-Content-Type-Options", "nosniff")
                 .header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
                 .body(file);
+    }
+
+    private void validateExternalUrl(String value) {
+        try {
+            URI uri = new URI(value);
+            String scheme = uri.getScheme();
+            if (uri.getHost() == null
+                    || !("http".equalsIgnoreCase(scheme) || "https".equalsIgnoreCase(scheme))) {
+                throw new BusinessException("资源链接不合法");
+            }
+        } catch (URISyntaxException | NullPointerException exception) {
+            throw new BusinessException("资源链接不合法");
+        }
+    }
+
+    private MediaType safeMediaType(String value) {
+        if (value == null || value.isBlank()) {
+            return MediaType.APPLICATION_OCTET_STREAM;
+        }
+        try {
+            MediaType mediaType = MediaType.parseMediaType(value);
+            String subtype = mediaType.getSubtype().toLowerCase();
+            if (subtype.contains("html") || subtype.contains("javascript")
+                    || subtype.contains("xml")) {
+                return MediaType.APPLICATION_OCTET_STREAM;
+            }
+            return mediaType;
+        } catch (InvalidMediaTypeException exception) {
+            return MediaType.APPLICATION_OCTET_STREAM;
+        }
     }
 }

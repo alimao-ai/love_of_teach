@@ -4,6 +4,7 @@ import com.loveofteach.platform.common.BusinessException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
@@ -23,6 +24,7 @@ import java.util.UUID;
  * 正式部署可替换为对象存储实现。
  */
 @Service
+@Slf4j
 public class LocalFileStorageService {
 
     private static final Set<String> ALLOWED_EXTENSIONS = Set.of(
@@ -77,6 +79,21 @@ public class LocalFileStorageService {
             return resource;
         } catch (IOException exception) {
             throw new BusinessException("资源文件读取失败");
+        }
+    }
+
+    public void delete(String storageKey) {
+        if (!StringUtils.hasText(storageKey)) {
+            return;
+        }
+        Path target = root.resolve(storageKey).normalize();
+        if (!target.startsWith(root)) {
+            return;
+        }
+        try {
+            Files.deleteIfExists(target);
+        } catch (IOException exception) {
+            log.warn("Unable to remove orphaned upload {}", storageKey, exception);
         }
     }
 
@@ -136,6 +153,18 @@ public class LocalFileStorageService {
         if (value.length == 0) {
             return false;
         }
+        if (startsWith(value, new byte[]{0, 0, (byte) 0xFE, (byte) 0xFF})) {
+            return isUtf32Text(value, 4, false);
+        }
+        if (startsWith(value, new byte[]{(byte) 0xFF, (byte) 0xFE, 0, 0})) {
+            return isUtf32Text(value, 4, true);
+        }
+        if (startsWith(value, new byte[]{(byte) 0xFE, (byte) 0xFF})) {
+            return isUtf16Text(value, 2, false);
+        }
+        if (startsWith(value, new byte[]{(byte) 0xFF, (byte) 0xFE})) {
+            return isUtf16Text(value, 2, true);
+        }
         for (byte current : value) {
             int unsigned = Byte.toUnsignedInt(current);
             if (unsigned == 0 || (unsigned < 0x09)
@@ -144,6 +173,51 @@ public class LocalFileStorageService {
             }
         }
         return true;
+    }
+
+    private boolean isUtf16Text(byte[] value, int offset, boolean littleEndian) {
+        int limit = value.length - ((value.length - offset) % 2);
+        for (int index = offset; index + 1 < limit; index += 2) {
+            int low = Byte.toUnsignedInt(value[index]);
+            int high = Byte.toUnsignedInt(value[index + 1]);
+            char character = (char) (littleEndian
+                    ? low | (high << 8)
+                    : (low << 8) | high);
+            if (!isDisplayableTextCharacter(character)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean isUtf32Text(byte[] value, int offset, boolean littleEndian) {
+        int limit = value.length - ((value.length - offset) % 4);
+        for (int index = offset; index + 3 < limit; index += 4) {
+            int b0 = Byte.toUnsignedInt(value[index]);
+            int b1 = Byte.toUnsignedInt(value[index + 1]);
+            int b2 = Byte.toUnsignedInt(value[index + 2]);
+            int b3 = Byte.toUnsignedInt(value[index + 3]);
+            int codePoint = littleEndian
+                    ? b0 | (b1 << 8) | (b2 << 16) | (b3 << 24)
+                    : (b0 << 24) | (b1 << 16) | (b2 << 8) | b3;
+            if (codePoint == 0 || !Character.isValidCodePoint(codePoint)) {
+                return false;
+            }
+            char character = Character.isBmpCodePoint(codePoint)
+                    ? (char) codePoint
+                    : 'A';
+            if (!isDisplayableTextCharacter(character)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean isDisplayableTextCharacter(char character) {
+        int unsigned = character;
+        return unsigned != 0
+                && (unsigned >= 0x20 || unsigned == '\t'
+                || unsigned == '\n' || unsigned == '\r');
     }
 
     public record StoredFile(
