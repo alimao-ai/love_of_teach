@@ -52,7 +52,7 @@ import java.util.List;
  */
 @Component
 @RequiredArgsConstructor
-@ConditionalOnProperty(name = "app.seed.enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(name = "app.seed.enabled", havingValue = "true")
 public class DataInitializer implements ApplicationRunner {
 
     private final DepartmentRepository departmentRepository;

@@ -5,7 +5,7 @@ spring:
   application:
     name: love-of-teach-platform
   datasource:
-    url: jdbc:h2:file:./data/love_of_teach;AUTO_SERVER=TRUE
+    url: jdbc:h2:file:./data/love_of_teach
     driver-class-name: org.h2.Driver
     username: sa
     password:
@@ -18,7 +18,7 @@ spring:
         format_sql: true
   h2:
     console:
-      enabled: true
+      enabled: ${H2_CONSOLE_ENABLED:false}
       path: /h2-console
   servlet:
     multipart:
@@ -33,7 +33,12 @@ logging:
     org.hibernate.SQL: warn
 
 app:
+  seed:
+    enabled: ${APP_SEED_ENABLED:false}
   auth:
     enabled: true
     token-ttl-hours: 24
+    teacher-registration-code: ${TEACHER_REGISTRATION_CODE:}
+    login-max-failures: ${LOGIN_MAX_FAILURES:5}
+    login-block-minutes: ${LOGIN_BLOCK_MINUTES:15}
   upload-dir: ./uploads

@@ -23,8 +23,10 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "user_accounts", uniqueConstraints = @UniqueConstraint(
-        name = "uk_user_username", columnNames = "username"))
+@Table(name = "user_accounts", uniqueConstraints = {
+        @UniqueConstraint(name = "uk_user_username", columnNames = "username"),
+        @UniqueConstraint(name = "uk_user_teacher", columnNames = "teacher_id")
+})
 public class UserAccount extends BaseEntity {
 
     @Column(nullable = false, length = 64)

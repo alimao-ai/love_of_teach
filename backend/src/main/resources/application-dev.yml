@@ -1,0 +1,10 @@
+spring:
+  h2:
+    console:
+      enabled: true
+
+app:
+  seed:
+    enabled: true
+  auth:
+    teacher-registration-code: ${TEACHER_REGISTRATION_CODE:TEACH-DEMO-2026}

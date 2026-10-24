@@ -18,6 +18,8 @@ public record RegisterRequest(
         String password,
         @NotNull(message = "角色不能为空")
         UserRole role,
-        String teacherNo
+        String teacherNo,
+        @Size(max = 128, message = "教师注册邀请码不能超过 128 个字符")
+        String registrationCode
 ) {
 }
