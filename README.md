@@ -33,8 +33,18 @@ code/
 ├── backend/     Spring Boot API
 ├── frontend/    Vue 3 单页应用
 ├── uploads/     教学资源上传目录（运行时生成，不提交 Git）
+├── docs/        发布、用户、测试与安全文档
 └── README.md
 ```
+
+## 项目文档
+
+- [发布说明](docs/release-notes.md)：PBI 交付、缺陷关闭、兼容性变化、测试与升级说明
+- [用户手册初稿](docs/user-manual.md)：环境准备、角色操作、演示链路和常见问题
+- [发布检查单](docs/release-checklist.md)：发布门禁与人工签收
+- [CI 通过记录](docs/ci-evidence.md)：GitHub Actions 运行证据
+- [安全收口说明](docs/security-hardening.md)：默认安全配置与整改范围
+- [技术债登记](docs/technical-debt-register.md)：剩余债务、风险和偿还计划
 
 ## 分支与提交策略
 
