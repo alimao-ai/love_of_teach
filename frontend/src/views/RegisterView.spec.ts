@@ -16,7 +16,7 @@ vi.mock('vue-router', () => ({
 }))
 
 describe('RegisterView', () => {
-  it('only offers teacher registration and requires a teacher number', async () => {
+  it('only offers teacher registration and requires a teacher number and invitation', async () => {
     const wrapper = mount(RegisterView, {
       global: {
         stubs: {
@@ -26,7 +26,8 @@ describe('RegisterView', () => {
     })
 
     expect(wrapper.find('input[placeholder="例如 T001"]').exists()).toBe(true)
+    expect(wrapper.find('input[placeholder="请输入管理员提供的邀请码"]').exists()).toBe(true)
     expect(wrapper.find('select').exists()).toBe(false)
-    expect(wrapper.text()).toContain('公开注册仅创建教师账号')
+    expect(wrapper.text()).toContain('教师注册需要邀请码')
   })
 })

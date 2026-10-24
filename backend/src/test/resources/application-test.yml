@@ -17,4 +17,7 @@ app:
     enabled: false
   auth:
     enabled: false
+    teacher-registration-code: TEST-REGISTER-CODE
+    login-max-failures: 5
+    login-block-minutes: 15
   upload-dir: ./target/test-uploads

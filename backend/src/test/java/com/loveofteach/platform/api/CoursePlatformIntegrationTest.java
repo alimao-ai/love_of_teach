@@ -317,11 +317,39 @@ class CoursePlatformIntegrationTest {
     }
 
     @Test
+    void importRejectsMissingCredits() throws Exception {
+        String csv = """
+                courseCode,courseName,departmentCode,credits,description,teacherNo,teacherName,semesterCode,className,studentCount,status
+                CS610,缺少学分,SOFTWARE,,测试课程,T001,教师1,2025-2026-2,软件2407,40,OPEN
+                """;
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "missing-credits.csv",
+                "text/csv",
+                csv.getBytes(StandardCharsets.UTF_8));
+
+        mockMvc.perform(multipart("/api/import/courses").file(file))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.successCount").value(0))
+                .andExpect(jsonPath("$.failureCount").value(1))
+                .andExpect(jsonPath("$.failures[0].reason").value("学分不能为空"));
+
+        assertThat(courseRepository.findByCodeIgnoreCase("CS610")).isEmpty();
+    }
+
+    @Test
     void invalidPathParameterReturnsBadRequest() throws Exception {
         mockMvc.perform(get("/api/courses/not-a-number"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("格式不正确")));
+    }
+
+    @Test
+    void missingResourceReturnsNotFound() throws Exception {
+        mockMvc.perform(get("/h2-console"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("请求的资源不存在"));
     }
 
     @Test

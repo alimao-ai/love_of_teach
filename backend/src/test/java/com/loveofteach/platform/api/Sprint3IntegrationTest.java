@@ -241,6 +241,10 @@ class Sprint3IntegrationTest {
                         .header(HttpHeaders.AUTHORIZATION,
                                 bearer(login("teacher", "teacher123"))))
                 .andExpect(status().isForbidden());
+        mockMvc.perform(get("/api/supervision/coverage")
+                        .header(HttpHeaders.AUTHORIZATION,
+                                bearer(login("teacher", "teacher123"))))
+                .andExpect(status().isForbidden());
     }
 
     @Test

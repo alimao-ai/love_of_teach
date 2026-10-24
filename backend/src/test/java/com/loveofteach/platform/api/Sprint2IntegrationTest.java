@@ -11,6 +11,7 @@ import com.loveofteach.platform.domain.Department;
 import com.loveofteach.platform.domain.ResourceChapter;
 import com.loveofteach.platform.domain.Semester;
 import com.loveofteach.platform.domain.Teacher;
+import com.loveofteach.platform.domain.TeachingResource;
 import com.loveofteach.platform.domain.UserAccount;
 import com.loveofteach.platform.repository.AuthTokenRepository;
 import com.loveofteach.platform.repository.CourseEvaluationRepository;
@@ -38,6 +39,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -179,6 +181,7 @@ class Sprint2IntegrationTest {
         account("teacher2", "李华", "teacher123", UserRole.TEACHER, teacherTwo);
         account("supervisor", "周督导", "supervisor123", UserRole.SUPERVISOR, null);
         account("director", "孟主任", "director123", UserRole.DIRECTOR, null);
+        account("admin", "系统管理员", "admin123", UserRole.ADMIN, null);
     }
 
     @Test
@@ -224,12 +227,95 @@ class Sprint2IntegrationTest {
                                   "displayName":"李华",
                                   "password":"newpass123",
                                   "role":"TEACHER",
-                                  "teacherNo":"T003"
+                                  "teacherNo":"T003",
+                                  "registrationCode":"TEST-REGISTER-CODE"
                                 }
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.user.role").value("TEACHER"))
                 .andExpect(jsonPath("$.user.teacherNo").value("T003"));
+    }
+
+    @Test
+    void teacherRegistrationRequiresInvitationAndOneAccountPerTeacher() throws Exception {
+        teacherRepository.save(Teacher.builder()
+                .employeeNo("T003")
+                .name("王芳")
+                .title("教授")
+                .department(department)
+                .build());
+
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "username":"new_teacher_wrong_code",
+                                  "displayName":"王芳",
+                                  "password":"newpass123",
+                                  "role":"TEACHER",
+                                  "teacherNo":"T003",
+                                  "registrationCode":"WRONG"
+                                }
+                                """))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.message").value("教师注册邀请码无效"));
+
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "username":"new_teacher_one",
+                                  "displayName":"王芳",
+                                  "password":"newpass123",
+                                  "role":"TEACHER",
+                                  "teacherNo":"T003",
+                                  "registrationCode":"TEST-REGISTER-CODE"
+                                }
+                                """))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "username":"new_teacher_two",
+                                  "displayName":"王芳",
+                                  "password":"newpass123",
+                                  "role":"TEACHER",
+                                  "teacherNo":"T003",
+                                  "registrationCode":"TEST-REGISTER-CODE"
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("该教师工号已绑定账号"));
+    }
+
+    @Test
+    void repeatedLoginFailuresAreRateLimited() throws Exception {
+        for (int attempt = 0; attempt < 5; attempt++) {
+            mockMvc.perform(post("/api/auth/login")
+                            .with(request -> {
+                                request.setRemoteAddr("198.51.100.20");
+                                return request;
+                            })
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"username":"rate_limit_probe","password":"wrong"}
+                                    """))
+                    .andExpect(status().isUnauthorized());
+        }
+
+        mockMvc.perform(post("/api/auth/login")
+                        .with(request -> {
+                            request.setRemoteAddr("198.51.100.20");
+                            return request;
+                        })
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"username":"rate_limit_probe","password":"wrong"}
+                                """))
+                .andExpect(status().isTooManyRequests())
+                .andExpect(jsonPath("$.message").value("登录失败次数过多，请稍后重试"));
     }
 
     @Test
@@ -356,6 +442,66 @@ class Sprint2IntegrationTest {
     }
 
     @Test
+    void downloadRejectsUnsafeExternalLinkAndSanitizesActiveMediaType() throws Exception {
+        String token = login("teacher", "teacher123");
+        TeachingResource unsafeLink = resourceRepository.save(TeachingResource.builder()
+                .offering(offeringOne)
+                .name("危险链接")
+                .resourceType(ResourceType.LINK)
+                .url("//evil.example/resource")
+                .uploadedAt(LocalDateTime.now())
+                .build());
+
+        mockMvc.perform(get("/api/resources/{id}/download", unsafeLink.getId())
+                        .header(HttpHeaders.AUTHORIZATION, bearer(token)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("资源链接不合法"));
+
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "note.txt",
+                "text/html",
+                "<script>alert(1)</script>".getBytes(StandardCharsets.UTF_8));
+        String response = mockMvc.perform(multipart("/api/offerings/{id}/resources", offeringOne.getId())
+                        .file(file)
+                        .param("name", "安全下载测试")
+                        .param("resourceType", "DOCUMENT")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(token)))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        long resourceId = objectMapper.readTree(response).get("id").asLong();
+
+        mockMvc.perform(get("/api/resources/{id}/download", resourceId)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(token)))
+                .andExpect(status().isOk())
+                .andExpect(header().string(HttpHeaders.CONTENT_TYPE,
+                        org.hamcrest.Matchers.startsWith(MediaType.APPLICATION_OCTET_STREAM_VALUE)))
+                .andExpect(header().string("X-Content-Type-Options", "nosniff"));
+    }
+
+    @Test
+    void uploadAcceptsUtf16TextWithBom() throws Exception {
+        String token = login("teacher", "teacher123");
+        byte[] utf16 = new byte[]{
+                (byte) 0xFF, (byte) 0xFE,
+                'h', 0, 'e', 0, 'l', 0, 'l', 0, 'o', 0
+        };
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "utf16-note.txt",
+                "text/plain",
+                utf16);
+
+        mockMvc.perform(multipart("/api/offerings/{id}/resources", offeringOne.getId())
+                        .file(file)
+                        .param("name", "UTF-16 说明")
+                        .param("resourceType", "DOCUMENT")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(token)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.originalFilename").value("utf16-note.txt"));
+    }
+
+    @Test
     void supervisorEvaluationUpdatesSummaryAndTeacherFeedback() throws Exception {
         String supervisorToken = login("supervisor", "supervisor123");
         mockMvc.perform(post("/api/evaluations")
@@ -451,6 +597,30 @@ class Sprint2IntegrationTest {
                 .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
 
         assertThat(csv).contains("'=1+1");
+    }
+
+    @Test
+    void importFailureCsvEscapesSpreadsheetFormulaInjection() throws Exception {
+        String csv = """
+                courseCode,courseName,departmentCode,credits,description,teacherNo,teacherName,semesterCode,className,studentCount,status
+                =1+1,错误课程,SOFTWARE,3.0,公式注入测试,T099,公式注入教师,2025-2026-2,软件2398,-1,OPEN
+                """;
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "formula-injection.csv",
+                "text/csv",
+                csv.getBytes(StandardCharsets.UTF_8));
+
+        String body = mockMvc.perform(multipart("/api/import/courses")
+                        .file(file)
+                        .header(HttpHeaders.AUTHORIZATION,
+                                bearer(login("admin", "admin123"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.failureCount").value(1))
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(objectMapper.readTree(body).get("failureCsv").asText())
+                .contains("'=1+1");
     }
 
     private String login(String username, String password) throws Exception {
