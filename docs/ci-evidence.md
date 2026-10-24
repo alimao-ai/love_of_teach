@@ -1,6 +1,35 @@
 # GitHub Actions CI 通过记录
 
-## Sprint 3 安全整改最新运行
+## Sprint 3 最终发布运行
+
+| 项目 | 内容 |
+|---|---|
+| 工作流名称 | `CI` |
+| 运行编号 | `#11` |
+| Run ID | `40086939058` |
+| 分支 | `fix/sprint3-security-regression` |
+| 提交 | `29b9b440d762c3e6c638f482023164b8a489aaa4` |
+| 提交说明 | `docs: register sprint3 carried technical debt` |
+| 运行结论 | **Success** |
+| 运行链接 | https://github.com/alimao-ai/love_of_teach/actions/runs/40086939058 |
+
+### 任务结果
+
+| 任务 | 检查内容 | 结果 |
+|---|---|---|
+| Backend tests | Java 17、Maven Wrapper、后端全量 JUnit/MockMvc `verify` | **Success** |
+| Frontend tests and build | Node.js 22、`npm ci`、Vitest、TypeScript 类型检查、Vite 生产构建 | **Success** |
+
+### 对应测试结果
+
+- 后端：61 个测试通过，包含 Sprint 1/2/3、全量端到端旅程和安全回归。
+- 前端：11 个测试文件、15 个 Vitest 用例通过。
+- TypeScript 类型检查通过。
+- Vite 生产构建通过。
+- 本地 `npm audit --omit=dev`：0 个已知漏洞。
+- 技术债登记表 `docs/technical-debt-register.md` 已纳入本次提交。
+
+## Sprint 3 安全整改过程运行
 
 | 项目 | 内容 |
 |---|---|
