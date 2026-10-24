@@ -33,6 +33,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * 解析课程与教师 CSV，并逐行校验、写入基础数据。
@@ -68,6 +69,7 @@ public class CourseImportService {
     private final CourseRepository courseRepository;
     private final CourseOfferingRepository offeringRepository;
     private final TransactionTemplate transactionTemplate;
+    private final CourseNotificationService notificationService;
 
     public byte[] buildTemplate() {
         String csv = String.join(",", TEMPLATE_HEADERS) + System.lineSeparator()
@@ -149,7 +151,16 @@ public class CourseImportService {
                         .department(department)
                         .build()));
 
-        Course course = courseRepository.findByCodeIgnoreCase(courseCode)
+        Course existingCourse = courseRepository.findByCodeIgnoreCase(courseCode).orElse(null);
+        boolean courseChanged = existingCourse == null
+                || !Objects.equals(existingCourse.getName(), courseName)
+                || existingCourse.getCredits().compareTo(credits) != 0
+                || !Objects.equals(
+                        defaultString(existingCourse.getDescription()),
+                        defaultString(row.get("description")))
+                || !existingCourse.getDepartment().getId().equals(department.getId())
+                || !existingCourse.isActive();
+        Course course = java.util.Optional.ofNullable(existingCourse)
                 .map(existing -> updateCourse(existing, courseName, credits, row.get("description"), department))
                 .orElseGet(() -> courseRepository.save(Course.builder()
                         .code(courseCode)
@@ -160,9 +171,14 @@ public class CourseImportService {
                         .active(true)
                         .build()));
 
-        CourseOffering offering = offeringRepository
+        CourseOffering existingOffering = offeringRepository
                 .findByCourseIdAndTeacherIdAndSemesterIdAndClassName(
                         course.getId(), teacher.getId(), semester.getId(), className)
+                .orElse(null);
+        boolean offeringChanged = existingOffering == null
+                || existingOffering.getStudentCount() != studentCount
+                || existingOffering.getStatus() != status;
+        CourseOffering offering = java.util.Optional.ofNullable(existingOffering)
                 .orElseGet(() -> CourseOffering.builder()
                         .course(course)
                         .teacher(teacher)
@@ -174,6 +190,12 @@ public class CourseImportService {
         offering.setStudentCount(studentCount);
         offering.setStatus(status);
         offeringRepository.save(offering);
+        if (courseChanged || offeringChanged) {
+            notificationService.notifyCourseChanged(
+                    course,
+                    "课程 " + course.getCode()
+                            + " 的开课信息已更新，请查看最新班级、人数和状态。");
+        }
     }
 
     private Course updateCourse(

@@ -6,6 +6,7 @@ public record CourseListItemResponse(
         Long offeringId,
         String courseCode,
         String courseName,
+        Long departmentId,
         String departmentCode,
         String departmentName,
         Long teacherId,

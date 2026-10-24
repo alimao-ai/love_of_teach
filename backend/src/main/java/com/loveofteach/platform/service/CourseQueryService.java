@@ -100,11 +100,8 @@ public class CourseQueryService {
         CourseOffering offering = offeringRepository.findDetailedById(offeringId)
                 .orElseThrow(() -> new BusinessException("开课记录不存在", HttpStatus.NOT_FOUND));
         long supervisionCount = supervisionRepository.countByOfferingId(offeringId);
-        List<CourseResourceResponse> resources = resourceRepository
-                .findDetailedByOfferingId(offeringId)
-                .stream()
-                .map(courseResourceService::toResourceResponse)
-                .toList();
+        List<CourseResourceResponse> resources = courseResourceService.toResourceResponses(
+                resourceRepository.findDetailedByOfferingId(offeringId));
         var chapterEntities = chapterRepository
                 .findByOfferingIdOrderByDisplayOrderAsc(offeringId)
                 .stream()
@@ -215,6 +212,7 @@ public class CourseQueryService {
                         offering.getId(),
                         offering.getCourse().getCode(),
                         offering.getCourse().getName(),
+                        offering.getCourse().getDepartment().getId(),
                         offering.getCourse().getDepartment().getCode(),
                         offering.getCourse().getDepartment().getName(),
                         offering.getTeacher().getId(),

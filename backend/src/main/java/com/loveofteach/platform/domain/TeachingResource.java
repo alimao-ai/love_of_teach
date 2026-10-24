@@ -59,6 +59,15 @@ public class TeachingResource extends BaseEntity {
     @Column(length = 256)
     private String storageKey;
 
+    @Builder.Default
+    @Column(nullable = false, columnDefinition = "boolean default true")
+    private boolean active = true;
+
+    private LocalDateTime unavailableAt;
+
+    @Column(length = 512)
+    private String unavailableReason;
+
     @Column(nullable = false)
     private LocalDateTime uploadedAt;
 }

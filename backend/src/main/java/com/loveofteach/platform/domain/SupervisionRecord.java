@@ -7,6 +7,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -21,7 +22,8 @@ import java.time.LocalDate;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "supervision_records")
+@Table(name = "supervision_records", uniqueConstraints = @UniqueConstraint(
+        name = "uk_supervision_offering", columnNames = "offering_id"))
 public class SupervisionRecord extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)

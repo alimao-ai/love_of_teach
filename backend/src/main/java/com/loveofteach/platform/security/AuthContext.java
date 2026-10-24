@@ -18,4 +18,9 @@ public final class AuthContext {
         }
         throw new BusinessException("请先登录", HttpStatus.UNAUTHORIZED);
     }
+
+    public static RequestUser current(HttpServletRequest request) {
+        Object value = request.getAttribute(REQUEST_ATTRIBUTE);
+        return value instanceof RequestUser user ? user : null;
+    }
 }

@@ -32,7 +32,7 @@ public interface TeachingResourceRepository extends JpaRepository<TeachingResour
     @Query("""
             select resource.offering.id as offeringId, count(resource) as resourceCount
             from TeachingResource resource
-            where resource.offering.id in :offeringIds
+            where resource.offering.id in :offeringIds and resource.active = true
             group by resource.offering.id
             """)
     List<OfferingResourceCount> countByOfferingIds(@Param("offeringIds") Collection<Long> offeringIds);
@@ -49,6 +49,7 @@ public interface TeachingResourceRepository extends JpaRepository<TeachingResour
               and (:offeringId is null or offering.id = :offeringId)
               and (:chapterId is null or chapter.id = :chapterId)
               and (:resourceType is null or resource.resourceType = :resourceType)
+              and resource.active = true
               and (:keyword is null or lower(resource.name) like lower(concat('%', :keyword, '%'))
                    or lower(coalesce(resource.description, '')) like lower(concat('%', :keyword, '%'))
                    or lower(course.name) like lower(concat('%', :keyword, '%')))
@@ -67,7 +68,7 @@ public interface TeachingResourceRepository extends JpaRepository<TeachingResour
     @Query("""
             select resource.chapter.id as chapterId, count(resource) as resourceCount
             from TeachingResource resource
-            where resource.chapter.id in :chapterIds
+            where resource.chapter.id in :chapterIds and resource.active = true
             group by resource.chapter.id
             """)
     List<ChapterResourceCount> countByChapterIds(

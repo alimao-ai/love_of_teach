@@ -15,11 +15,12 @@ public interface CourseOfferingRepository extends JpaRepository<CourseOffering, 
     @Query("""
             select o from CourseOffering o
             join fetch o.course c
+            join fetch c.department courseDepartment
             join fetch o.teacher t
-            join fetch t.department d
+            join fetch t.department
             join fetch o.semester s
             where (:semesterId is null or s.id = :semesterId)
-              and (:departmentId is null or d.id = :departmentId)
+              and (:departmentId is null or courseDepartment.id = :departmentId)
               and (:teacherId is null or t.id = :teacherId)
               and (:keyword is null or lower(c.code) like lower(concat('%', :keyword, '%'))
                    or lower(c.name) like lower(concat('%', :keyword, '%'))
@@ -35,8 +36,9 @@ public interface CourseOfferingRepository extends JpaRepository<CourseOffering, 
     @Query("""
             select o from CourseOffering o
             join fetch o.course c
+            join fetch c.department
             join fetch o.teacher t
-            join fetch t.department d
+            join fetch t.department
             join fetch o.semester s
             where o.id = :id
             """)
@@ -50,8 +52,9 @@ public interface CourseOfferingRepository extends JpaRepository<CourseOffering, 
     @Query("""
             select o from CourseOffering o
             join fetch o.course c
+            join fetch c.department
             join fetch o.teacher t
-            join fetch t.department d
+            join fetch t.department
             join fetch o.semester s
             where o.id = :id
             """)
@@ -59,4 +62,6 @@ public interface CourseOfferingRepository extends JpaRepository<CourseOffering, 
 
     Optional<CourseOffering> findByCourseIdAndTeacherIdAndSemesterIdAndClassName(
             Long courseId, Long teacherId, Long semesterId, String className);
+
+    boolean existsByCourseIdAndTeacherId(Long courseId, Long teacherId);
 }

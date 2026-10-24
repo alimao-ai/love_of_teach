@@ -4,12 +4,16 @@ import com.loveofteach.platform.api.dto.CourseResourceResponse;
 import com.loveofteach.platform.api.dto.ResourceChapterAssignRequest;
 import com.loveofteach.platform.api.dto.ResourceChapterRequest;
 import com.loveofteach.platform.api.dto.ResourceChapterResponse;
+import com.loveofteach.platform.api.dto.ResourceAvailabilityRequest;
+import com.loveofteach.platform.api.dto.ResourceQualityReviewRequest;
+import com.loveofteach.platform.api.dto.ResourceQualityReviewResponse;
 import com.loveofteach.platform.api.dto.ResourceSearchItemResponse;
 import com.loveofteach.platform.common.ResourceType;
 import com.loveofteach.platform.domain.TeachingResource;
 import com.loveofteach.platform.security.AuthContext;
 import com.loveofteach.platform.service.CourseResourceService;
 import com.loveofteach.platform.service.LocalFileStorageService;
+import com.loveofteach.platform.service.ResourceQualityService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -38,6 +42,7 @@ public class CourseResourceController {
 
     private final CourseResourceService resourceService;
     private final LocalFileStorageService storageService;
+    private final ResourceQualityService qualityService;
 
     @GetMapping("/offerings/{offeringId}/chapters")
     public List<ResourceChapterResponse> listChapters(@PathVariable Long offeringId) {
@@ -88,6 +93,26 @@ public class CourseResourceController {
                 resourceId,
                 request.chapterId(),
                 AuthContext.require(servletRequest));
+    }
+
+    @PatchMapping("/resources/{resourceId}/availability")
+    public CourseResourceResponse updateAvailability(
+            @PathVariable Long resourceId,
+            @Valid @RequestBody ResourceAvailabilityRequest body,
+            HttpServletRequest servletRequest
+    ) {
+        return resourceService.updateAvailability(
+                resourceId, body, AuthContext.require(servletRequest));
+    }
+
+    @PostMapping("/resources/{resourceId}/review")
+    public ResourceQualityReviewResponse reviewResource(
+            @PathVariable Long resourceId,
+            @Valid @RequestBody ResourceQualityReviewRequest body,
+            HttpServletRequest servletRequest
+    ) {
+        return qualityService.review(
+                resourceId, body, AuthContext.require(servletRequest));
     }
 
     @GetMapping("/resources/search")

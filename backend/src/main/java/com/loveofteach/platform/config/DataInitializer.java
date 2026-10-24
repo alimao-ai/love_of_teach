@@ -1,28 +1,38 @@
 package com.loveofteach.platform.config;
 
 import com.loveofteach.platform.common.OfferingStatus;
+import com.loveofteach.platform.common.ResourceQualityLevel;
 import com.loveofteach.platform.common.ResourceType;
+import com.loveofteach.platform.common.SupervisionPlanStatus;
 import com.loveofteach.platform.common.UserRole;
 import com.loveofteach.platform.domain.Course;
 import com.loveofteach.platform.domain.CourseEvaluation;
 import com.loveofteach.platform.domain.CourseOffering;
+import com.loveofteach.platform.domain.CourseSubscription;
 import com.loveofteach.platform.domain.Department;
 import com.loveofteach.platform.domain.ResourceChapter;
+import com.loveofteach.platform.domain.ResourceQualityReview;
 import com.loveofteach.platform.domain.Semester;
+import com.loveofteach.platform.domain.SupervisionPlan;
 import com.loveofteach.platform.domain.SupervisionRecord;
 import com.loveofteach.platform.domain.Teacher;
 import com.loveofteach.platform.domain.TeachingResource;
 import com.loveofteach.platform.domain.UserAccount;
 import com.loveofteach.platform.repository.CourseOfferingRepository;
 import com.loveofteach.platform.repository.CourseEvaluationRepository;
+import com.loveofteach.platform.repository.CourseNotificationRepository;
 import com.loveofteach.platform.repository.CourseRepository;
+import com.loveofteach.platform.repository.CourseSubscriptionRepository;
 import com.loveofteach.platform.repository.DepartmentRepository;
 import com.loveofteach.platform.repository.ResourceChapterRepository;
+import com.loveofteach.platform.repository.ResourceQualityReviewRepository;
 import com.loveofteach.platform.repository.SemesterRepository;
+import com.loveofteach.platform.repository.SupervisionPlanRepository;
 import com.loveofteach.platform.repository.SupervisionRecordRepository;
 import com.loveofteach.platform.repository.TeacherRepository;
 import com.loveofteach.platform.repository.TeachingResourceRepository;
 import com.loveofteach.platform.repository.UserAccountRepository;
+import com.loveofteach.platform.service.CourseNotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
@@ -54,6 +64,11 @@ public class DataInitializer implements ApplicationRunner {
     private final SupervisionRecordRepository supervisionRepository;
     private final ResourceChapterRepository chapterRepository;
     private final CourseEvaluationRepository evaluationRepository;
+    private final CourseNotificationRepository notificationRepository;
+    private final CourseSubscriptionRepository subscriptionRepository;
+    private final SupervisionPlanRepository supervisionPlanRepository;
+    private final ResourceQualityReviewRepository qualityReviewRepository;
+    private final CourseNotificationService notificationService;
     private final UserAccountRepository userAccountRepository;
     private final PasswordEncoder passwordEncoder;
 
@@ -63,6 +78,7 @@ public class DataInitializer implements ApplicationRunner {
         if (departmentRepository.count() > 0) {
             ensureAccounts();
             seedSprint2Samples();
+            seedSprint3Samples();
             return;
         }
 
@@ -167,6 +183,7 @@ public class DataInitializer implements ApplicationRunner {
 
         ensureAccounts();
         seedSprint2Samples();
+        seedSprint3Samples();
     }
 
     private void ensureAccounts() {
@@ -232,6 +249,98 @@ public class DataInitializer implements ApplicationRunner {
             if (director != null) {
                 evaluation(second, director, 68, "课堂互动偏少，建议增加分层练习与随堂反馈。");
             }
+        }
+    }
+
+    private void seedSprint3Samples() {
+        List<CourseOffering> offerings = offeringRepository.search(null, null, null, null);
+        if (offerings.isEmpty()) {
+            return;
+        }
+        UserAccount supervisor = userAccountRepository
+                .findByUsernameIgnoreCase("supervisor")
+                .orElse(null);
+        UserAccount teacher = userAccountRepository
+                .findByUsernameIgnoreCase("teacher")
+                .orElse(null);
+        CourseOffering first = findOffering(offerings, "CS101", "2025-2026-2")
+                .orElse(offerings.get(0));
+        CourseOffering second = findOffering(offerings, "CS201", "2025-2026-2")
+                .orElse(offerings.get(Math.min(1, offerings.size() - 1)));
+
+        if (subscriptionRepository.count() == 0
+                && teacher != null
+                && teacher.getTeacher() != null) {
+            Course course = first.getCourse();
+            if (offeringRepository.existsByCourseIdAndTeacherId(
+                    course.getId(), teacher.getTeacher().getId())) {
+                subscriptionRepository.save(CourseSubscription.builder()
+                        .teacher(teacher)
+                        .course(course)
+                        .active(true)
+                        .build());
+            }
+        }
+        if (notificationRepository.count() == 0) {
+            subscriptionRepository.findByCourseIdAndActiveTrue(first.getCourse().getId())
+                    .stream()
+                    .findFirst()
+                    .ifPresent(subscription -> notificationService.notifyCourseChanged(
+                            first.getCourse(),
+                            "课程 CS101 的开课信息已更新，请查看最新班级、人数和状态。"));
+        }
+
+        if (qualityReviewRepository.count() == 0 && supervisor != null) {
+            List<TeachingResource> resources =
+                    resourceRepository.findByOfferingIdOrderByUploadedAtDesc(first.getId());
+            if (!resources.isEmpty()) {
+                qualityReviewRepository.save(ResourceQualityReview.builder()
+                        .resource(resources.get(0))
+                        .reviewer(supervisor)
+                        .level(ResourceQualityLevel.EXCELLENT)
+                        .comment("章节结构清晰，案例与课程目标匹配，推荐作为示范资源。")
+                        .recommended(true)
+                        .reviewedAt(LocalDateTime.now().minusDays(1))
+                        .build());
+            }
+        }
+
+        if (supervisionPlanRepository.count() == 0 && supervisor != null) {
+            LocalDate today = LocalDate.now();
+            supervisionPlanRepository.save(SupervisionPlan.builder()
+                    .offering(first)
+                    .supervisor(supervisor)
+                    .plannedDate(today.plusDays(2))
+                    .dueDate(today.plusDays(5))
+                    .status(SupervisionPlanStatus.PLANNED)
+                    .note("检查课堂互动与章节资源使用情况")
+                    .build());
+            supervisionPlanRepository.save(SupervisionPlan.builder()
+                    .offering(second)
+                    .supervisor(supervisor)
+                    .plannedDate(today)
+                    .dueDate(today.plusDays(7))
+                    .status(SupervisionPlanStatus.IN_PROGRESS)
+                    .note("跟踪低覆盖课程资源补充进度")
+                    .build());
+        }
+
+        boolean hasInactiveResource = resourceRepository
+                .findByOfferingIdOrderByUploadedAtDesc(first.getId())
+                .stream()
+                .anyMatch(resource -> !resource.isActive());
+        if (!hasInactiveResource) {
+            resourceRepository.findByOfferingIdOrderByUploadedAtDesc(first.getId())
+                    .stream()
+                    .filter(TeachingResource::isActive)
+                    .skip(1)
+                    .findFirst()
+                    .ifPresent(resource -> {
+                        resource.setActive(false);
+                        resource.setUnavailableAt(LocalDateTime.now().minusDays(1));
+                        resource.setUnavailableReason("课程内容已更新，等待教师确认后恢复");
+                        resourceRepository.save(resource);
+                    });
         }
     }
 

@@ -19,6 +19,9 @@ public record ResourceSearchItemResponse(
         String semesterName,
         String className,
         LocalDateTime uploadedAt,
-        String downloadUrl
+        String downloadUrl,
+        String qualityLevel,
+        String qualityLevelLabel,
+        boolean recommended
 ) {
 }

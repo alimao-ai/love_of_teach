@@ -16,6 +16,12 @@ public record CourseResourceResponse(
         String description,
         String originalFilename,
         Long fileSize,
-        String downloadUrl
+        String downloadUrl,
+        boolean active,
+        LocalDateTime unavailableAt,
+        String qualityLevel,
+        String qualityLevelLabel,
+        boolean recommended,
+        String reviewComment
 ) {
 }

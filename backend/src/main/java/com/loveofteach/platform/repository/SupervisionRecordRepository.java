@@ -10,5 +10,7 @@ public interface SupervisionRecordRepository extends JpaRepository<SupervisionRe
 
     long countByOfferingId(Long offeringId);
 
+    boolean existsByOfferingId(Long offeringId);
+
     List<SupervisionRecord> findByOfferingIdIn(Collection<Long> offeringIds);
 }
