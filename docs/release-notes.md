@@ -5,8 +5,8 @@
 | 项目 | 内容 |
 |---|---|
 | 版本 | Sprint 3 / v1.0.0-sprint3 |
-| 分支 | `feature/sprint3-evaluation-closure-release` |
-| 基线 | `0c790c9`（Sprint 1 + Sprint 2 稳定成果） |
+| 分支 | `fix/sprint3-security-regression` |
+| 基线 | 最新 `main`（含 Sprint 1/2/3 与全量端到端用例） |
 | 发布主题 | 评价闭环、统计完善与发布准备 |
 | 数据库 | H2 文件数据库，MySQL 兼容模式测试 |
 
@@ -27,13 +27,14 @@
 - 已偿还：课程学院筛选改为课程所属院系，避免按授课教师院系错误归类。
 - 已偿还：资源质量评审在课程详情使用批量查询，避免逐资源查询造成 N+1。
 - 已偿还：重复导入相同课程/开课数据不生成重复通知。
-- 发布后债务：登录失败次数限流、对象存储、病毒扫描、HttpOnly Cookie、正式数据库迁移审计。
+- 已偿还：默认关闭演示种子与 H2 控制台，教师注册增加邀请码和数据库唯一绑定，登录失败增加限流。
+- 发布后债务：对象存储、病毒扫描、HttpOnly Cookie、正式数据库迁移审计。
 
 ## 验证结果
 
 | 检查项 | 结果 |
 |---|---|
-| 后端 `.\mvnw.cmd verify` | 40 个测试通过 |
+| 后端 `.\mvnw.cmd verify` | 61 个测试通过 |
 | 前端 `npm test` | 11 个测试文件、15 个用例通过 |
 | 前端 `npm run typecheck` | 通过 |
 | 前端 `npm run build` | 通过 |
@@ -54,7 +55,7 @@
 
 ```powershell
 cd backend
-.\mvnw.cmd spring-boot:run
+.\mvnw.cmd spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
 ```powershell
@@ -62,8 +63,8 @@ cd frontend
 npm run dev
 ```
 
-访问 `http://localhost:5173`，系统首先进入登录页。后端 API 位于 `http://localhost:8080/api`，H2 控制台位于 `http://localhost:8080/h2-console`。
+访问 `http://localhost:5173`，系统首先进入登录页。后端 API 位于 `http://localhost:8080/api`，H2 控制台仅在 `dev` 配置下位于 `http://localhost:8080/h2-console`。
 
 ## 发布结论
 
-Sprint 3 六个用户故事已完成实现并通过后端接口回归、前端视图测试、类型检查和生产构建。登录失败限流等非阻断债务已登记，不阻塞本轮课程演示与离线提交。
+Sprint 3 六个用户故事已完成实现并通过后端接口回归、全量端到端旅程、前端视图测试、类型检查和生产构建。安全整改已关闭 H2 控制台默认暴露、演示账号默认启用、教师注册身份冒用、失败 CSV 公式注入和登录暴力尝试等发布阻断项。

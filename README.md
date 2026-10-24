@@ -39,7 +39,7 @@ code/
 ## 分支与提交策略
 
 - `main` 保持可演示、可交付的稳定版本，不直接开发业务功能。
-- 每个迭代从上一迭代稳定代码创建独立功能分支。当前 Sprint 3 分支为 `feature/sprint3-evaluation-closure-release`，基线为包含 Sprint 1、Sprint 2 全部成果的 `0c790c9`。
+- 每个迭代从上一迭代稳定代码创建独立功能分支。当前安全整改分支为 `fix/sprint3-security-regression`，基线为包含 Sprint 1、Sprint 2、Sprint 3 和全量端到端用例的最新 `main`。
 - 提交信息使用 `feat`、`fix`、`docs`、`test` 等前缀，按后端、前端、文档等职责拆分提交，便于审查和回溯。
 - 功能完成后通过 Pull Request 合并到 `main`，合并前必须通过后端测试、前端测试、类型检查和生产构建。
 
@@ -61,9 +61,18 @@ cd backend
 .\mvnw.cmd spring-boot:run
 ```
 
-后端默认运行在 `http://localhost:8080`，接口前缀为 `/api`。开发环境使用文件型 H2 数据库，数据保存在 `backend/data/`。
+安全默认配置不会创建演示账号，也不会开放 H2 控制台。本地演示或验收使用 `dev` 配置：
 
-H2 控制台地址：`http://localhost:8080/h2-console`
+```powershell
+cd backend
+.\mvnw.cmd spring-boot:run -Dspring-boot.run.profiles=dev
+```
+
+`dev` 配置会启用幂等演示数据、H2 控制台和教师注册邀请码 `TEACH-DEMO-2026`。生产环境必须通过 `TEACHER_REGISTRATION_CODE` 设置独立邀请码；未设置时教师公开注册关闭。
+
+后端默认运行在 `http://localhost:8080`，接口前缀为 `/api`。数据保存在 `backend/data/`。
+
+H2 控制台仅在 `dev` 配置开放：`http://localhost:8080/h2-console`
 
 - JDBC URL：`jdbc:h2:file:./data/love_of_teach`
 - 用户名：`sa`
@@ -93,9 +102,9 @@ npm run typecheck
 npm run build
 ```
 
-Sprint 3 基线验证结果：
+Sprint 3 安全整改验证结果：
 
-- 后端：40 个 JUnit/MockMvc 测试通过，包含 Sprint 1、Sprint 2、Sprint 3 和权限回归。
+- 后端：61 个 JUnit/MockMvc 测试通过，包含三个 Sprint、全量端到端旅程和安全回归。
 - 前端：11 个测试文件、15 个 Vitest 用例通过。
 - TypeScript 类型检查和 Vite 生产构建通过。
 
@@ -197,7 +206,10 @@ courseCode,courseName,departmentCode,credits,description,teacherNo,teacherName,s
 - 督导记录使用 `offering_id` 唯一约束，并在计划完成时对开课记录加悲观锁，避免并发完成产生重复督导计数。
 - 课程通知只在课程或开课数据实际变化时生成，重复导入相同数据不会制造重复通知。
 - 课程详情资源质量评审采用批量查询，避免逐资源查询造成 N+1。
-- 登录接口失败次数限流仍作为发布后技术债，正式部署应在网关或认证服务中补充。
+- 教师账号使用 `teacher_id` 唯一约束，注册还需要独立邀请码，避免仅凭教师工号冒用身份。
+- 登录失败次数按账号与来源地址限流，超过阈值的请求返回 429。
+- 开课统计导出和导入失败 CSV 共用安全转义，公式前缀无法直接进入电子表格。
+- 上传下载会校验外部链接、限制活动媒体类型并设置 `nosniff`；事务回滚时会清理已写入的孤儿文件。
 
 ## 初始账号与角色
 

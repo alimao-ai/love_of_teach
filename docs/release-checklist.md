@@ -2,7 +2,7 @@
 
 ## 代码与分支
 
-- [x] 从 Sprint 2 稳定基线 `0c790c9` 创建 `feature/sprint3-evaluation-closure-release`
+- [x] 从最新 `main` 创建 `fix/sprint3-security-regression`
 - [x] 功能、测试、文档按职责拆分提交
 - [x] 后端 Java 代码与前端 Vue 3 代码均包含必要注释和类型定义
 - [x] 无未处理编译错误和 TypeScript 错误
@@ -27,12 +27,14 @@
 - [x] 前端 Vitest 全量通过
 - [x] TypeScript 类型检查通过
 - [x] Vite 生产构建通过
+- [x] 贡献者新增的 14 个全量回归与端到端旅程用例通过
+- [x] 安全整改新增回归用例通过，后端累计 61 个测试
 - [x] Sprint 3 GitHub Actions 运行记录成功
 - [x] 将 CI 运行链接与运行编号写入 `docs/ci-evidence.md`
 
 ## 运行验证
 
-- [x] H2 数据库自动建表和幂等演示数据初始化
+- [x] 默认配置关闭演示种子和 H2 控制台，`dev` 配置可幂等初始化演示数据
 - [x] 登录页作为系统首屏
 - [x] 教师端通知与资源上下架入口可访问
 - [x] 督导端学院钻取、听评课计划和资源评审入口可访问
