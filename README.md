@@ -45,6 +45,8 @@ code/
 - [CI 通过记录](docs/ci-evidence.md)：GitHub Actions 运行证据
 - [安全收口说明](docs/security-hardening.md)：默认安全配置与整改范围
 - [技术债登记](docs/technical-debt-register.md)：剩余债务、风险和偿还计划
+- [发布归档说明](docs/release-archive.md)：源码、文档、标签、CI 和打包边界
+- [发布 Manifest](docs/release-manifest.json)：机器可读的版本与验证结果
 
 ## 分支与提交策略
 

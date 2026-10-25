@@ -1,17 +1,20 @@
 # GitHub Actions CI 通过记录
 
-## Sprint 3 最终发布运行
+## Sprint 3 v1.0.3 最终发布运行
 
 | 项目 | 内容 |
 |---|---|
 | 工作流名称 | `CI` |
-| 运行编号 | `#11` |
-| Run ID | `40086939058` |
-| 分支 | `fix/sprint3-security-regression` |
-| 提交 | `29b9b440d762c3e6c638f482023164b8a489aaa4` |
-| 提交说明 | `docs: register sprint3 carried technical debt` |
+| 最终标签 | `v1.0.3-sprint3` |
+| 发布提交 | `339c0cf4d8db60e867b082182fbaea93aec615d8` |
+| 提交说明 | `fix(frontend): remove internal iteration labels from release UI` |
 | 运行结论 | **Success** |
-| 运行链接 | https://github.com/alimao-ai/love_of_teach/actions/runs/40086939058 |
+
+| 触发对象 | 运行编号 | Run ID | 结果 | 运行链接 |
+|---|---|---|---|---|
+| 功能分支 | `#18` | `40162626193` | **Success** | https://github.com/alimao-ai/love_of_teach/actions/runs/40162626193 |
+| 发布标签 | `#19` | `40162699365` | **Success** | https://github.com/alimao-ai/love_of_teach/actions/runs/40162699365 |
+| `main` | `#20` | `40162702126` | **Success** | https://github.com/alimao-ai/love_of_teach/actions/runs/40162702126 |
 
 ### 任务结果
 
@@ -27,9 +30,9 @@
 - TypeScript 类型检查通过。
 - Vite 生产构建通过。
 - 本地 `npm audit --omit=dev`：0 个已知漏洞。
-- 技术债登记表 `docs/technical-debt-register.md` 已纳入本次提交。
+- 技术债登记表、Release Notes、用户手册、发布检查单和发布归档清单均已纳入 `code/docs`。
 
-## Sprint 3 安全整改过程运行
+## Sprint 3 发布期间安全与债务收口记录
 
 | 项目 | 内容 |
 |---|---|

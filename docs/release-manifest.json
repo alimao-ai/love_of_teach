@@ -1,0 +1,70 @@
+{
+  "product": "爱教学教学质量全链路数字化管理平台",
+  "release": "v1.0.3-sprint3",
+  "release_date": "2026-10-25",
+  "release_type": "single-machine-course-demo",
+  "repository": "https://github.com/alimao-ai/love_of_teach",
+  "tag": "v1.0.3-sprint3",
+  "tag_commit": "339c0cf4d8db60e867b082182fbaea93aec615d8",
+  "main_commit_at_release": "339c0cf4d8db60e867b082182fbaea93aec615d8",
+  "main_commit_note": "Documentation-only evidence commits may advance main after the release tag; the tag remains the product release identity.",
+  "branches": [
+    "main",
+    "fix/sprint3-security-regression"
+  ],
+  "pbi": {
+    "planned": 18,
+    "completed": 18
+  },
+  "tests": {
+    "backend_total": 61,
+    "backend_failures": 0,
+    "backend_errors": 0,
+    "frontend_files": 11,
+    "frontend_cases": 15,
+    "full_regression_cases": 12,
+    "end_to_end_journeys": 2,
+    "typescript": "pass",
+    "vite_build": "pass",
+    "npm_audit": "0 vulnerabilities"
+  },
+  "ci": {
+    "branch": {
+      "run": "#18",
+      "id": "40162626193",
+      "conclusion": "success"
+    },
+    "tag": {
+      "run": "#19",
+      "id": "40162699365",
+      "conclusion": "success"
+    },
+    "main": {
+      "run": "#20",
+      "id": "40162702126",
+      "conclusion": "success"
+    }
+  },
+  "documents": [
+    "README.md",
+    "docs/release-notes.md",
+    "docs/user-manual.md",
+    "docs/release-checklist.md",
+    "docs/ci-evidence.md",
+    "docs/security-hardening.md",
+    "docs/technical-debt-register.md",
+    "docs/release-archive.md"
+  ],
+  "excluded_runtime_paths": [
+    "backend/target/",
+    "frontend/node_modules/",
+    "frontend/dist/",
+    "backend/data/",
+    "backend/uploads/"
+  ],
+  "manual_signoff": {
+    "developer": "passed",
+    "tester": "passed",
+    "product_owner": "pending"
+  }
+}
