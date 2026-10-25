@@ -176,8 +176,8 @@ async function logout() {
       </nav>
 
       <div class="sidebar-footer">
-        <span>进阶 1 · 评价闭环</span>
-        <strong>Sprint 3</strong>
+        <span>教学质量工作台</span>
+        <strong>评价闭环</strong>
       </div>
     </aside>
 

@@ -39,7 +39,7 @@ async function submit() {
         <span>教学质量全链路数字化管理平台</span>
       </div>
       <div class="auth-message">
-        <span class="auth-kicker">进阶 1 · 查课程</span>
+        <span class="auth-kicker">教学质量工作台</span>
         <h1>让每一次教学评价都形成可追踪的改进闭环</h1>
         <p>课程资源、课堂评价、督导覆盖和统计报表统一汇聚在同一个教学质量工作台。</p>
       </div>

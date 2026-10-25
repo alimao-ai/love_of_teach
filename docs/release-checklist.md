@@ -52,7 +52,7 @@
 - [x] `docs/release-notes.md` 包含 18 个 PBI、缺陷关闭、兼容性、验证与升级说明
 - [x] `docs/user-manual.md` 包含环境准备、角色操作、演示链路和常见问题
 - [x] `docs/release-checklist.md` 包含人工验收检查项
-- [x] 创建 `v1.0.2-sprint3` 发布标签
+- [x] 创建 `v1.0.3-sprint3` 发布标签
 - [x] 推送功能分支并确认远端提交
 
 ## 人工签收
